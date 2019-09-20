@@ -136,6 +136,8 @@ def pyversion_from_env():
         if k in py:
             py_version = k
             break
+    else:
+        print("error: %s not in config.pythons" % py)
 
     if "64" in py:
         py_version = "%s%s" % (py_version, X64_EXT)
@@ -150,6 +152,8 @@ def compiler_from_env():
         if k in py:
             py_info = v
             break
+    else:
+        print("error: %s not in config.pythons" % py)
 
     bit = bit_from_env()
     return compilers[py_info["compiler"]][py_info["vc"]][bit]
