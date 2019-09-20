@@ -62,6 +62,7 @@ install:
       else
       {
         c:\python37\python.exe c:\pillow\winbuild\build_dep.py
+        type c:\pillow\winbuild\build_deps.cmd
         c:\pillow\winbuild\build_deps.cmd
         $host.SetShouldExit(0)
       }
