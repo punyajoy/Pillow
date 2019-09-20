@@ -334,10 +334,10 @@ def add_compiler(compiler, bit):
 
     # script.append(extract_openjpeg(compiler))
 
-    script.append(msbuild_freetype(compiler, bit))
-    script.append(build_lcms2(compiler))
+    #script.append(msbuild_freetype(compiler, bit))
+    #script.append(build_lcms2(compiler))
     script.append(nmake_openjpeg(compiler, bit))
-    script.append(build_ghostscript(compiler, bit))
+    #script.append(build_ghostscript(compiler, bit))
     script.append(end_compiler())
 
 
