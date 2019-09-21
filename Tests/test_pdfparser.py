@@ -1,4 +1,5 @@
 import time
+import sys
 
 from PIL.PdfParser import (
     IndirectObjectDef,
@@ -14,7 +15,7 @@ from PIL.PdfParser import (
     pdf_repr,
 )
 
-from .helper import PillowTestCase
+from .helper import PillowTestCase, unittest
 
 
 class TestPdfParser(PillowTestCase):
@@ -34,6 +35,12 @@ class TestPdfParser(PillowTestCase):
         self.assertNotEqual(IndirectObjectDef(1, 2), IndirectReference(1, 2))
         self.assertNotEqual(IndirectObjectDef(1, 2), (1, 2))
 
+    @unittest.skipIf(
+        sys.platform == "win32"
+        and sys.version.startswith("3")
+        and hasattr(sys, "pypy_translation_info"),
+        "PyPy3 internal error (only if running all tests)"
+    )
     def test_parsing(self):
         self.assertEqual(PdfParser.interpret_name(b"Name#23Hash"), b"Name#Hash")
         self.assertEqual(
