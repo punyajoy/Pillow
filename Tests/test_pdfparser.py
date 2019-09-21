@@ -39,7 +39,7 @@ class TestPdfParser(PillowTestCase):
         sys.platform == "win32"
         and sys.version.startswith("3")
         and hasattr(sys, "pypy_translation_info"),
-        "PyPy3 internal error (only if running all tests)"
+        "PyPy3 internal error (only if running all tests)",
     )
     def test_parsing(self):
         self.assertEqual(PdfParser.interpret_name(b"Name#23Hash"), b"Name#Hash")
