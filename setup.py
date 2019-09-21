@@ -725,7 +725,7 @@ class pil_build_ext(build_ext):
         else:
             defs.append(("PILLOW_VERSION", '"%s"' % PILLOW_VERSION))
 
-        exts = [(Extension("PIL._imaging", files, libraries=libs, define_macros=defs))]
+        exts = [(Extension("PIL._imaging", files, libraries=libs, define_macros=defs, extra_link_args=["/verbose:lib"]))]
 
         #
         # additional libraries
