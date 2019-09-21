@@ -92,7 +92,7 @@ test_script:
       }
       else
       {
-        & $env:PYTHON/$env:PIP_DIR/pip.exe install pytest pytest-cov
+        & $env:PYTHON/$env:PIP_DIR/pip.exe install pytest pytest-cov 2>&1
       }
 - '%PYTHON%\%EXECUTABLE% -m pytest -vx --cov PIL --cov-report term --cov-report xml Tests'
 #- '%PYTHON%\%EXECUTABLE% test-installed.py -v -s %TEST_OPTIONS%' TODO TEST_OPTIONS with pytest?
