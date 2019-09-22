@@ -14,6 +14,8 @@ try:
 except ImportError:
     HAVE_WEBP = False
 
+os.environ.setdefault("CI_FEATURES", "")
+
 
 class TestFeatures(PillowTestCase):
     def test_check(self):
@@ -50,7 +52,7 @@ class TestFeatures(PillowTestCase):
         self.assertIsInstance(features.get_supported_features(), list)
         self.assertIsInstance(features.get_supported(), list)
 
-    @unittest.skipUnless(hasattr(os.environ, "CI_FEATURES"), "CI_FEATURES not set")
+    @unittest.skipUnless("CI_FEATURES" in os.environ, "CI_FEATURES not set")
     def test_supported_ci(self):
         self.assertEqual(
             features.get_supported().sort(), os.environ["CI_FEATURES"].split(",").sort()
