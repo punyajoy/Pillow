@@ -55,7 +55,8 @@ class TestFeatures(PillowTestCase):
     @unittest.skipUnless("CI_FEATURES" in os.environ, "CI_FEATURES not set")
     def test_supported_ci(self):
         self.assertEqual(
-            features.get_supported().sort(), os.environ["CI_FEATURES"].split(",").sort()
+            sorted(features.get_supported()),
+            sorted(os.environ["CI_FEATURES"].split(",")),
         )
 
     def test_check_unsupported(self):
