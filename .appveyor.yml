@@ -39,7 +39,7 @@ environment:
     PIP_DIR: bin
     TEST_OPTIONS: --processes=0
     DEPLOY: NO
-    CI_FEATURES: jpg,pil,tkinter,zlib
+    CI_FEATURES: jpg,libjpeg_turbo,pil,tkinter,zlib
 
 
 install:
