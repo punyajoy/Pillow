@@ -17,19 +17,29 @@ environment:
     EXECUTABLE: bin/pypy.exe
     PIP_DIR: bin
     VENV: YES
+    CI_FEATURES: freetype2,jpg,libtiff,littlecms2,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/Python27-x64
+    CI_FEATURES: freetype2,jpg,libtiff,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/Python37
+    CI_FEATURES: freetype2,jpg,jpg_2000,libtiff,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/Python27
+    CI_FEATURES: freetype2,jpg,libtiff,littlecms2,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/Python37-x64
+    CI_FEATURES: freetype2,jpg,jpg_2000,libtiff,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/Python36
+    CI_FEATURES: freetype2,jpg,jpg_2000,libtiff,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/Python36-x64
+    CI_FEATURES: freetype2,jpg,jpg_2000,libtiff,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/Python35
+    CI_FEATURES: freetype2,jpg,jpg_2000,libtiff,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/Python35-x64
+    CI_FEATURES: freetype2,jpg,jpg_2000,libtiff,pil,tkinter,transp_webp,webp,webp_anim,webp_mux,zlib
   - PYTHON: C:/msys64/mingw32
     EXECUTABLE: bin/python3
     PIP_DIR: bin
     TEST_OPTIONS: --processes=0
     DEPLOY: NO
+    CI_FEATURES: jpg,pil,tkinter,zlib
 
 
 install:
