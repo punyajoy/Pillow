@@ -52,7 +52,9 @@ class TestFeatures(PillowTestCase):
 
     @unittest.skipUnless(hasattr(os.environ, "CI_FEATURES"), "CI_FEATURES not set")
     def test_supported_ci(self):
-        self.assertEqual(features.get_supported().sort(), os.environ["CI_FEATURES"].split(",").sort())
+        self.assertEqual(
+            features.get_supported().sort(), os.environ["CI_FEATURES"].split(",").sort()
+        )
 
     def test_check_unsupported(self):
         self.assertRaises(ValueError, features.check_codec, "unsupported")
