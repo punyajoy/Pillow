@@ -69,7 +69,7 @@ def check_feature(feature):
         imported_module = __import__(module, fromlist=["PIL"])
         return getattr(imported_module, flag)
     except ImportError:
-        return None
+        return False
 
 
 def get_supported_features():
