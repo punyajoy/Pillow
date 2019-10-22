@@ -2,7 +2,7 @@ import os.path
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont, features
 
-from .helper import PillowTestCase, hopper, unittest
+from .helper import PillowTestCase, hopper, is_win32, unittest
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -818,6 +818,9 @@ class TestImageDraw(PillowTestCase):
 
     @unittest.skipUnless(HAS_FREETYPE, "ImageFont not available")
     def test_stroke(self):
+        if is_win32():
+            self.skipKnownBadTest("failing on Windows with full page heap checking")
+
         for suffix, stroke_fill in {"same": None, "different": "#0f0"}.items():
             # Arrange
             im = Image.new("RGB", (120, 130))
@@ -836,6 +839,9 @@ class TestImageDraw(PillowTestCase):
 
     @unittest.skipUnless(HAS_FREETYPE, "ImageFont not available")
     def test_stroke_multiline(self):
+        if is_win32():
+            self.skipKnownBadTest("failing on Windows with full page heap checking")
+
         # Arrange
         im = Image.new("RGB", (100, 250))
         draw = ImageDraw.Draw(im)

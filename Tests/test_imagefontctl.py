@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PIL import Image, ImageDraw, ImageFont, features
 
-from .helper import PillowTestCase, unittest
+from .helper import PillowTestCase, is_win32, unittest
 
 FONT_SIZE = 20
 FONT_PATH = "Tests/fonts/DejaVuSans.ttf"
@@ -116,6 +116,9 @@ class TestImagecomplextext(PillowTestCase):
         self.assert_image_similar(im, target_img, 1.15)
 
     def test_text_direction_ttb_stroke(self):
+        if is_win32():
+            self.skipKnownBadTest("failing on Windows with full page heap checking")
+
         ttf = ImageFont.truetype("Tests/fonts/NotoSansJP-Regular.otf", 50)
 
         im = Image.new(mode="RGB", size=(100, 300))
