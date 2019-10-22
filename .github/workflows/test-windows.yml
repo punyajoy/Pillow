@@ -326,6 +326,8 @@ jobs:
 
     - name: Test Pillow
       run: |
+        "C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\gflags.exe" /p /enable python.exe /full
+        "C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\gflags.exe" /p /enable pypy3.exe /full
         set PYTHON=%pythonLocation%
         set INCLIB=%GITHUB_WORKSPACE%\winbuild\depends\msvcr10-x32
         rem Add GhostScript and Raqm binaries (copied to INCLIB) to PATH.
