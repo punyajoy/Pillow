@@ -326,14 +326,18 @@ jobs:
 
     - name: Test Pillow
       run: |
-        "C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\gflags.exe" /p /enable python.exe /full
-        "C:\Program Files (x86)\Windows Kits\10\Debuggers\x86\gflags.exe" /p /enable pypy3.exe /full
+        path C:\Program Files (x86)\Windows Kits\10\Debuggers\${{ matrix.architecture }};%path%
+        gflags.exe /p /enable python.exe /full /debug "cdb -g -G -x -cf "winbuild\dump.cdb""
+        gflags.exe /p /enable pypy3.exe /full /debug "cdb -g -G -x -cf "winbuild\dump.cdb""
         set PYTHON=%pythonLocation%
         set INCLIB=%GITHUB_WORKSPACE%\winbuild\depends\msvcr10-x32
         rem Add GhostScript and Raqm binaries (copied to INCLIB) to PATH.
         path %INCLIB%;%PATH%
         cd /D %GITHUB_WORKSPACE%
-        %PYTHON%\python.exe -m pytest -vx --cov PIL --cov-report term --cov-report xml Tests
+        cdb -g -G -x -cf "winbuild\dump.cdb" %PYTHON%\python.exe -m pytest -vx --cov PIL --cov-report term --cov-report xml Tests
+        gflags /p /disable python.exe
+        gflags /p /disable pypy3.exe
+        if exist "python.dmp" exit /B 1
 
     - name: Upload coverage
       run: 'codecov --file "%GITHUB_WORKSPACE%\coverage.xml" --name "%pythonLocation%"'
