@@ -37,8 +37,8 @@ class TestImageShow(PillowTestCase):
         ImageShow._viewers.pop(0)
 
     @unittest.skipUnless(
-        on_ci() and not (is_win32() and on_github_actions()),
-        "Only run on CIs; hangs on Windows on GitHub Actions",
+        on_ci() and not is_win32(),
+        "Only run on CIs; hangs on Windows 10",
     )
     def test_show(self):
         for mode in ("1", "I;16", "LA", "RGB", "RGBA"):
