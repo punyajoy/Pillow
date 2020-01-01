@@ -20,6 +20,7 @@ jobs:
           - python-version: "pypy3.6"
             pypy-version: "pypy3.6-v7.3.0-win32"
             pypy-url: "https://bitbucket.org/pypy/pypy/downloads/pypy3.6-v7.3.0-win32.zip"
+            EXECUTABLE: "pypy3.exe"
         exclude:
           - python-version: "pypy3.6"
             architecture: "x64"
@@ -55,9 +56,10 @@ jobs:
         mv "$env:RUNNER_WORKSPACE\${{ matrix.pypy-version }}" "$env:RUNNER_WORKSPACE\${{ matrix.python-version }}"
         $env:PYTHON="$env:RUNNER_WORKSPACE\${{ matrix.python-version }}"
 
-        # set env: pythonLocation, PYTHON
         Write-Host "::set-env name=pythonLocation::$env:PYTHON"
         Write-Host "::add-path::$env:PYTHON"
+        Write-Host "::set-env name=TK_LIBRARY::$env:PYTHON\tcl\tk8.5"
+        Write-Host "::set-env name=TCL_LIBRARY::$env:PYTHON\tcl\tcl8.5"
         New-Item -ItemType SymbolicLink -Path "$env:PYTHON\python.exe" -Target "$env:PYTHON\pypy3.exe"
 
         curl -fsSL -o get-pip.py https://bootstrap.pypa.io/get-pip.py
@@ -87,9 +89,7 @@ jobs:
         ..\pillow-depends\gs950w32.exe /S
         Write-Host "::add-path::C:\Program Files (x86)\gs\gs9.50\bin"
 
-        mkdir $env:GITHUB_WORKSPACE\winbuild\depends\
-        xcopy ..\pillow-depends\*.zip $env:GITHUB_WORKSPACE\winbuild\depends\
-        xcopy ..\pillow-depends\*.tar.gz $env:GITHUB_WORKSPACE\winbuild\depends\
+        $env:PILLOW_DEPS = "$env:RUNNER_WORKSPACE\pillow-depends\"
         xcopy /s ..\pillow-depends\test_images\* $env:GITHUB_WORKSPACE\tests\images\
 
         $env:PYTHON=$env:pythonLocation

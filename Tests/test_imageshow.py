@@ -2,7 +2,7 @@ import unittest
 
 from PIL import Image, ImageShow
 
-from .helper import PillowTestCase, hopper, is_win32, on_ci, on_github_actions
+from .helper import PillowTestCase, hopper, is_win32, on_ci
 
 
 class TestImageShow(PillowTestCase):
@@ -37,8 +37,7 @@ class TestImageShow(PillowTestCase):
         ImageShow._viewers.pop(0)
 
     @unittest.skipUnless(
-        on_ci() and not is_win32(),
-        "Only run on CIs; hangs on Windows 10",
+        on_ci() and not is_win32(), "Only run on CIs; hangs on Windows 10",
     )
     def test_show(self):
         for mode in ("1", "I;16", "LA", "RGB", "RGBA"):
