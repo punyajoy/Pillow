@@ -4,13 +4,14 @@ import sys
 import pytest
 from PIL import Image, ImageGrab
 
-from .helper import assert_image
+from .helper import assert_image, is_win32_docker
 
 
 class TestImageGrab:
     @pytest.mark.skipif(
         sys.platform not in ("win32", "darwin"), reason="requires Windows or macOS"
     )
+    @pytest.mark.skipif(is_win32_docker(), reason="running on headless Windows")
     def test_grab(self):
         for im in [
             ImageGrab.grab(),
