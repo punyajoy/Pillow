@@ -20,14 +20,14 @@ Example: Draw a gray cross over an image
 
     from PIL import Image, ImageDraw
 
-    im = Image.open("hopper.jpg")
+    with Image.open("hopper.jpg") as im:
 
-    draw = ImageDraw.Draw(im)
-    draw.line((0, 0) + im.size, fill=128)
-    draw.line((0, im.size[1], im.size[0], 0), fill=128)
+        draw = ImageDraw.Draw(im)
+        draw.line((0, 0) + im.size, fill=128)
+        draw.line((0, im.size[1], im.size[0], 0), fill=128)
 
-    # write to stdout
-    im.save(sys.stdout, "PNG")
+        # write to stdout
+        im.save(sys.stdout, "PNG")
 
 
 Concepts
@@ -154,7 +154,7 @@ Methods
     To paste pixel data into an image, use the
     :py:meth:`~PIL.Image.Image.paste` method on the image itself.
 
-.. py:method:: PIL.ImageDraw.ImageDraw.chord(xy, start, end, fill=None, outline=None, width=0)
+.. py:method:: PIL.ImageDraw.ImageDraw.chord(xy, start, end, fill=None, outline=None, width=1)
 
     Same as :py:meth:`~PIL.ImageDraw.ImageDraw.arc`, but connects the end points
     with a straight line.
@@ -168,7 +168,7 @@ Methods
 
         .. versionadded:: 5.3.0
 
-.. py:method:: PIL.ImageDraw.ImageDraw.ellipse(xy, fill=None, outline=None, width=0)
+.. py:method:: PIL.ImageDraw.ImageDraw.ellipse(xy, fill=None, outline=None, width=1)
 
     Draws an ellipse inside the given bounding box.
 
@@ -198,7 +198,7 @@ Methods
 
         .. versionadded:: 5.3.0
 
-.. py:method:: PIL.ImageDraw.ImageDraw.pieslice(xy, start, end, fill=None, outline=None, width=0)
+.. py:method:: PIL.ImageDraw.ImageDraw.pieslice(xy, start, end, fill=None, outline=None, width=1)
 
     Same as arc, but also draws straight lines between the end points and the
     center of the bounding box.
@@ -236,7 +236,7 @@ Methods
     :param outline: Color to use for the outline.
     :param fill: Color to use for the fill.
 
-.. py:method:: PIL.ImageDraw.ImageDraw.rectangle(xy, fill=None, outline=None, width=0)
+.. py:method:: PIL.ImageDraw.ImageDraw.rectangle(xy, fill=None, outline=None, width=1)
 
     Draws a rectangle.
 
@@ -255,7 +255,7 @@ Methods
 
     Draw a shape.
 
-.. py:method:: PIL.ImageDraw.ImageDraw.text(xy, text, fill=None, font=None, anchor=None, spacing=0, align="left", direction=None, features=None, language=None, stroke_width=0, stroke_fill=None)
+.. py:method:: PIL.ImageDraw.ImageDraw.text(xy, text, fill=None, font=None, anchor=None, spacing=4, align="left", direction=None, features=None, language=None, stroke_width=0, stroke_fill=None)
 
     Draws the string at the given position.
 
@@ -306,7 +306,7 @@ Methods
 
                      .. versionadded:: 6.2.0
 
-.. py:method:: PIL.ImageDraw.ImageDraw.multiline_text(xy, text, fill=None, font=None, anchor=None, spacing=0, align="left", direction=None, features=None, language=None)
+.. py:method:: PIL.ImageDraw.ImageDraw.multiline_text(xy, text, fill=None, font=None, anchor=None, spacing=4, align="left", direction=None, features=None, language=None)
 
     Draws the string at the given position.
 

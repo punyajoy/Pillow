@@ -2,8 +2,65 @@
 Changelog (Pillow)
 ==================
 
-7.0.0 (unreleased)
+7.1.0 (unreleased)
 ------------------
+
+- Fixed endian handling for I;16 getextrema #4457
+  [radarhere]
+
+- Release buffer if function returns prematurely #4381
+  [radarhere]
+
+- Add JPEG comment to info dictionary #4455
+  [radarhere]
+
+- Fix size calculation of Image.thumbnail() #4404
+  [orlnub123]
+
+- Fixed stroke on FreeType < 2.9 #4401
+  [radarhere]
+
+- If present, only use alpha channel for bounding box #4454
+  [radarhere]
+
+- Warn if an unknown feature is passed to features.check() #4438
+  [jdufresne]
+
+- Fix Name field length when saving IM images #4424
+  [hugovk, radarhere]
+
+- Allow saving of zero quality JPEG images #4440
+  [radarhere]
+
+- Allow explicit zero width to hide outline #4334
+  [radarhere]
+
+- Change ContainerIO return type to match file object mode #4297
+  [jdufresne, radarhere]
+
+- Only draw each polygon pixel once #4333
+  [radarhere]
+
+- Add support for shooting situation Exif IFD tags #4398
+  [alexagv]
+
+- Handle multiple and malformed JPEG APP13 markers #4370
+  [homm]
+
+- Depends: Update libwebp to 1.1.0 #4342, libjpeg to 9d #4352
+  [radarhere]
+
+7.0.0 (2020-01-02)
+------------------
+
+- Drop support for EOL Python 2.7 #4109
+  [hugovk, radarhere, jdufresne]
+
+- Fix rounding error on RGB to L conversion #4320
+  [homm]
+
+- Exif writing fixes: Rational boundaries and signed/unsigned types #3980
+  [kkopachev, radarhere]
 
 - Allow loading of WMF images at a given DPI #4311
   [radarhere]
@@ -44,9 +101,6 @@ Changelog (Pillow)
 - Fix Unicode support for PyPy #4145
   [nulano]
 
-- Drop support for EOL Python 2.7 #4109
-  [hugovk, radarhere, jdufresne]
-
 - Added UnidentifiedImageError #4182
   [radarhere, hugovk]
 
@@ -62,7 +116,7 @@ Changelog (Pillow)
 - Corrected DdsImagePlugin setting info gamma #4171
   [radarhere]
 
-- Depends: Update libtiff to 4.1.0 #4195, Tk Tcl to 8.6.10 #4229
+- Depends: Update libtiff to 4.1.0 #4195, Tk Tcl to 8.6.10 #4229, libimagequant to 2.12.6 #4318
   [radarhere]
 
 - Improve handling of file resources #3577
@@ -86,10 +140,28 @@ Changelog (Pillow)
 - Changed default frombuffer raw decoder args #1730
   [radarhere]
 
-6.2.1 (2019-10-21)
+6.2.2 (2020-01-02)
 ------------------
 
 - This is the last Pillow release to support Python 2.7 #3642
+
+- Overflow checks for realloc for tiff decoding. CVE-2020-5310
+  [wiredfool, radarhere]
+
+- Catch SGI buffer overrun. CVE-2020-5311
+  [radarhere]
+
+- Catch PCX P mode buffer overrun. CVE-2020-5312
+  [radarhere]
+
+- Catch FLI buffer overrun. CVE-2020-5313
+  [radarhere]
+
+- Raise an error for an invalid number of bands in FPX image. CVE-2019-19911
+  [wiredfool, radarhere]
+
+6.2.1 (2019-10-21)
+------------------
 
 - Add support for Python 3.8 #4141
   [hugovk]

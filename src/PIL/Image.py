@@ -144,6 +144,9 @@ HAMMING = 5
 BICUBIC = CUBIC = 3
 LANCZOS = ANTIALIAS = 1
 
+_filters_support = {BOX: 0.5, BILINEAR: 1.0, HAMMING: 1.0, BICUBIC: 2.0, LANCZOS: 3.0}
+
+
 # dithers
 NEAREST = NONE = 0
 ORDERED = 1  # Not yet implemented
@@ -398,15 +401,17 @@ def _getdecoder(mode, decoder_name, args, extra=()):
 
     try:
         decoder = DECODERS[decoder_name]
-        return decoder(mode, *args + extra)
     except KeyError:
         pass
+    else:
+        return decoder(mode, *args + extra)
+
     try:
         # get decoder
         decoder = getattr(core, decoder_name + "_decoder")
-        return decoder(mode, *args + extra)
     except AttributeError:
         raise OSError("decoder %s not available" % decoder_name)
+    return decoder(mode, *args + extra)
 
 
 def _getencoder(mode, encoder_name, args, extra=()):
@@ -419,15 +424,17 @@ def _getencoder(mode, encoder_name, args, extra=()):
 
     try:
         encoder = ENCODERS[encoder_name]
-        return encoder(mode, *args + extra)
     except KeyError:
         pass
+    else:
+        return encoder(mode, *args + extra)
+
     try:
         # get encoder
         encoder = getattr(core, encoder_name + "_encoder")
-        return encoder(mode, *args + extra)
     except AttributeError:
         raise OSError("encoder %s not available" % encoder_name)
+    return encoder(mode, *args + extra)
 
 
 # --------------------------------------------------------------------
@@ -1763,7 +1770,24 @@ class Image:
 
         return m_im
 
-    def resize(self, size, resample=BICUBIC, box=None):
+    def _get_safe_box(self, size, resample, box):
+        """Expands the box so it includes adjacent pixels
+        that may be used by resampling with the given resampling filter.
+        """
+        filter_support = _filters_support[resample] - 0.5
+        scale_x = (box[2] - box[0]) / size[0]
+        scale_y = (box[3] - box[1]) / size[1]
+        support_x = filter_support * scale_x
+        support_y = filter_support * scale_y
+
+        return (
+            max(0, int(box[0] - support_x)),
+            max(0, int(box[1] - support_y)),
+            min(self.size[0], math.ceil(box[2] + support_x)),
+            min(self.size[1], math.ceil(box[3] + support_y)),
+        )
+
+    def resize(self, size, resample=BICUBIC, box=None, reducing_gap=None):
         """
         Returns a resized copy of this image.
 
@@ -1781,6 +1805,18 @@ class Image:
            the source image region to be scaled.
            The values must be within (0, 0, width, height) rectangle.
            If omitted or None, the entire source is used.
+        :param reducing_gap: Apply optimization by resizing the image
+           in two steps. First, reducing the image by integer times
+           using :py:meth:`~PIL.Image.Image.reduce`.
+           Second, resizing using regular resampling. The last step
+           changes size no less than by ``reducing_gap`` times.
+           ``reducing_gap`` may be None (no first step is performed)
+           or should be greater than 1.0. The bigger ``reducing_gap``,
+           the closer the result to the fair resampling.
+           The smaller ``reducing_gap``, the faster resizing.
+           With ``reducing_gap`` greater or equal to 3.0, the result is
+           indistinguishable from fair resampling in most cases.
+           The default value is None (no optimization).
         :returns: An :py:class:`~PIL.Image.Image` object.
         """
 
@@ -1802,6 +1838,9 @@ class Image:
                 message + " Use " + ", ".join(filters[:-1]) + " or " + filters[-1]
             )
 
+        if reducing_gap is not None and reducing_gap < 1.0:
+            raise ValueError("reducing_gap must be 1.0 or greater")
+
         size = tuple(size)
 
         if box is None:
@@ -1821,6 +1860,19 @@ class Image:
             return im.convert(self.mode)
 
         self.load()
+
+        if reducing_gap is not None and resample != NEAREST:
+            factor_x = int((box[2] - box[0]) / size[0] / reducing_gap) or 1
+            factor_y = int((box[3] - box[1]) / size[1] / reducing_gap) or 1
+            if factor_x > 1 or factor_y > 1:
+                reduce_box = self._get_safe_box(size, resample, box)
+                self = self.reduce((factor_x, factor_y), box=reduce_box)
+                box = (
+                    (box[0] - reduce_box[0]) / factor_x,
+                    (box[1] - reduce_box[1]) / factor_y,
+                    (box[2] - reduce_box[0]) / factor_x,
+                    (box[3] - reduce_box[1]) / factor_y,
+                )
 
         return self._new(self.im.resize(size, resample, box))
 
@@ -1963,8 +2015,8 @@ class Image:
                 x, y = transform(x, y, matrix)
                 xx.append(x)
                 yy.append(y)
-            nw = int(math.ceil(max(xx)) - math.floor(min(xx)))
-            nh = int(math.ceil(max(yy)) - math.floor(min(yy)))
+            nw = math.ceil(max(xx)) - math.floor(min(xx))
+            nh = math.ceil(max(yy)) - math.floor(min(yy))
 
             # We multiply a translation matrix from the right.  Because of its
             # special form, this is the same as taking the image of the
@@ -2147,7 +2199,7 @@ class Image:
         """
         return 0
 
-    def thumbnail(self, size, resample=BICUBIC):
+    def thumbnail(self, size, resample=BICUBIC, reducing_gap=2.0):
         """
         Make this image into a thumbnail.  This method modifies the
         image to contain a thumbnail version of itself, no larger than
@@ -2166,30 +2218,47 @@ class Image:
            of :py:attr:`PIL.Image.NEAREST`, :py:attr:`PIL.Image.BILINEAR`,
            :py:attr:`PIL.Image.BICUBIC`, or :py:attr:`PIL.Image.LANCZOS`.
            If omitted, it defaults to :py:attr:`PIL.Image.BICUBIC`.
-           (was :py:attr:`PIL.Image.NEAREST` prior to version 2.5.0)
+           (was :py:attr:`PIL.Image.NEAREST` prior to version 2.5.0).
+        :param reducing_gap: Apply optimization by resizing the image
+           in two steps. First, reducing the image by integer times
+           using :py:meth:`~PIL.Image.Image.reduce` or
+           :py:meth:`~PIL.Image.Image.draft` for JPEG images.
+           Second, resizing using regular resampling. The last step
+           changes size no less than by ``reducing_gap`` times.
+           ``reducing_gap`` may be None (no first step is performed)
+           or should be greater than 1.0. The bigger ``reducing_gap``,
+           the closer the result to the fair resampling.
+           The smaller ``reducing_gap``, the faster resizing.
+           With ``reducing_gap`` greater or equal to 3.0, the result is
+           indistinguishable from fair resampling in most cases.
+           The default value is 2.0 (very close to fair resampling
+           while still being faster in many cases).
         :returns: None
         """
 
-        # preserve aspect ratio
-        x, y = self.size
-        if x > size[0]:
-            y = max(round(y * size[0] / x), 1)
-            x = round(size[0])
-        if y > size[1]:
-            x = max(round(x * size[1] / y), 1)
-            y = round(size[1])
-        size = x, y
-        box = None
-
-        if size == self.size:
+        x, y = map(math.floor, size)
+        if x >= self.width and y >= self.height:
             return
 
-        res = self.draft(None, size)
-        if res is not None:
-            box = res[1]
+        def round_aspect(number, key):
+            return max(min(math.floor(number), math.ceil(number), key=key), 1)
+
+        # preserve aspect ratio
+        aspect = self.width / self.height
+        if x / y >= aspect:
+            x = round_aspect(y * aspect, key=lambda n: abs(aspect - n / y))
+        else:
+            y = round_aspect(x / aspect, key=lambda n: abs(aspect - x / n))
+        size = (x, y)
+
+        box = None
+        if reducing_gap is not None:
+            res = self.draft(None, (size[0] * reducing_gap, size[1] * reducing_gap))
+            if res is not None:
+                box = res[1]
 
         if self.size != size:
-            im = self.resize(size, resample, box=box)
+            im = self.resize(size, resample, box=box, reducing_gap=reducing_gap)
 
             self.im = im.im
             self._size = size
@@ -2294,8 +2363,8 @@ class Image:
         elif method == EXTENT:
             # convert extent to an affine transform
             x0, y0, x1, y1 = data
-            xs = float(x1 - x0) / w
-            ys = float(y1 - y0) / h
+            xs = (x1 - x0) / w
+            ys = (y1 - y0) / h
             method = AFFINE
             data = (xs, 0, x0, 0, ys, y0)
 
@@ -2571,7 +2640,7 @@ def frombuffer(mode, size, data, decoder_name="raw", *args):
             args = mode, 0, 1
         if args[0] in _MAPMODES:
             im = new(mode, (1, 1))
-            im = im._new(core.map_buffer(data, size, decoder_name, None, 0, args))
+            im = im._new(core.map_buffer(data, size, decoder_name, 0, args))
             im.readonly = 1
             return im
 

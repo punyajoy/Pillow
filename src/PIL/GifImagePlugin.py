@@ -25,6 +25,7 @@
 #
 
 import itertools
+import math
 import os
 import subprocess
 
@@ -569,8 +570,11 @@ def _write_local_header(fp, im, offset, flags):
 
     if "comment" in im.encoderinfo and 1 <= len(im.encoderinfo["comment"]):
         fp.write(b"!" + o8(254))  # extension intro
-        for i in range(0, len(im.encoderinfo["comment"]), 255):
-            subblock = im.encoderinfo["comment"][i : i + 255]
+        comment = im.encoderinfo["comment"]
+        if isinstance(comment, str):
+            comment = comment.encode()
+        for i in range(0, len(comment), 255):
+            subblock = comment[i : i + 255]
             fp.write(o8(len(subblock)) + subblock)
         fp.write(o8(0))
     if "loop" in im.encoderinfo:
@@ -698,14 +702,12 @@ def _get_optimize(im, info):
 
 def _get_color_table_size(palette_bytes):
     # calculate the palette size for the header
-    import math
-
     if not palette_bytes:
         return 0
     elif len(palette_bytes) < 9:
         return 1
     else:
-        return int(math.ceil(math.log(len(palette_bytes) // 3, 2))) - 1
+        return math.ceil(math.log(len(palette_bytes) // 3, 2)) - 1
 
 
 def _get_header_palette(palette_bytes):

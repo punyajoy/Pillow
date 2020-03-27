@@ -298,11 +298,16 @@ The :py:meth:`~PIL.Image.Image.open` method may set the following
 **exif**
     Raw EXIF data from the image.
 
+**comment**
+    A comment about the image.
+
+    .. versionadded:: 7.1.0
+
 
 The :py:meth:`~PIL.Image.Image.save` method supports the following options:
 
 **quality**
-    The image quality, on a scale from 1 (worst) to 95 (best). The default is
+    The image quality, on a scale from 0 (worst) to 95 (best). The default is
     75. Values above 95 should be avoided; 100 disables portions of the JPEG
     compression algorithm, and results in large files with hardly any gain in
     image quality.

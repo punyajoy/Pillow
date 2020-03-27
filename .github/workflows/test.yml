@@ -24,6 +24,12 @@ jobs:
           env: PYTHONOPTIMIZE=2
         - python-version: "3.6"
           env: PYTHONOPTIMIZE=1
+        # Include new variables for Codecov
+        - os: ubuntu-latest
+          codecov-flag: GHA_Ubuntu
+        - os: macOS-latest
+          codecov-flag: GHA_macOS
+
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} Python ${{ matrix.python-version }}
 
@@ -36,7 +42,7 @@ jobs:
       with:
         path: ~/.cache/pip
         key:
-          ${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/.travis/*.sh') }}
+          ${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/.ci/*.sh') }}
         restore-keys: |
           ${{ matrix.os }}-${{ matrix.python-version }}-
 
@@ -46,7 +52,7 @@ jobs:
       with:
         path: ~/Library/Caches/pip
         key:
-          ${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/.travis/*.sh') }}
+          ${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/.ci/*.sh') }}
         restore-keys: |
           ${{ matrix.os }}-${{ matrix.python-version }}-
 
@@ -61,7 +67,7 @@ jobs:
     - name: Install Linux dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        .travis/install.sh
+        .ci/install.sh
 
     - name: Install macOS dependencies
       if: startsWith(matrix.os, 'macOS')
@@ -70,11 +76,17 @@ jobs:
 
     - name: Build
       run: |
-        .travis/build.sh
+        .ci/build.sh
 
     - name: Test
       run: |
-        .travis/test.sh
+        .ci/test.sh
+
+    - name: Prepare to upload errors
+      if: failure()
+      run: |
+        mkdir -p Tests/errors
+      shell: pwsh
 
     - name: Upload errors
       uses: actions/upload-artifact@v1
@@ -86,18 +98,10 @@ jobs:
     - name: After success
       if: success()
       run: |
-        .travis/after_success.sh
-      env:
-        MATRIX_OS: ${{ matrix.os }}
-        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-
-    - name: Prepare coverage token
-      if: success() && github.repository == 'python-pillow/Pillow'
-      run: cp .github/codecov-upstream.yml .codecov.yml
+        .ci/after_success.sh
 
     - name: Upload coverage
       if: success()
-      uses: codecov/codecov-action@v1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        name: ${{ matrix.os }} Python ${{ matrix.python-version }}
+      run: bash <(curl -s https://codecov.io/bash) -F ${{ matrix.codecov-flag }}
+      env:
+        CODECOV_NAME: ${{ matrix.os }} Python ${{ matrix.python-version }}

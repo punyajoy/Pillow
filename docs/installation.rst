@@ -16,25 +16,25 @@ Notes
 .. note:: Pillow is supported on the following Python versions
 
 
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|**Python**         |**3.8**|**3.7**|**3.6**|**3.5**|**3.4**|**3.3**|**3.2**|**2.7**|**2.6**|**2.5**|**2.4**|
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|Pillow >= 7        |  Yes  |  Yes  |  Yes  |  Yes  |       |       |       |       |       |       |       |
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|Pillow 6.2.1       |  Yes  |  Yes  |  Yes  |  Yes  |       |       |       |  Yes  |       |       |       |
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|Pillow 6.0 - 6.2.0 |       |  Yes  |  Yes  |  Yes  |       |       |       |  Yes  |       |       |       |
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|Pillow 5.2 - 5.4   |       |  Yes  |  Yes  |  Yes  |  Yes  |       |       |  Yes  |       |       |       |
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|Pillow 5.0 - 5.1   |       |       |  Yes  |  Yes  |  Yes  |       |       |  Yes  |       |       |       |
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|Pillow 4           |       |       |  Yes  |  Yes  |  Yes  |  Yes  |       |  Yes  |       |       |       |
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|Pillow 2 - 3       |       |       |       |  Yes  |  Yes  |  Yes  |  Yes  |  Yes  |  Yes  |       |       |
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
-|Pillow < 2         |       |       |       |       |       |       |       |  Yes  |  Yes  |  Yes  |  Yes  |
-+-------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|**Python**          |**3.8**|**3.7**|**3.6**|**3.5**|**3.4**|**3.3**|**3.2**|**2.7**|**2.6**|**2.5**|**2.4**|
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|Pillow >= 7         |  Yes  |  Yes  |  Yes  |  Yes  |       |       |       |       |       |       |       |
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|Pillow 6.2.1 - 6.2.2|  Yes  |  Yes  |  Yes  |  Yes  |       |       |       |  Yes  |       |       |       |
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|Pillow 6.0 - 6.2.0  |       |  Yes  |  Yes  |  Yes  |       |       |       |  Yes  |       |       |       |
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|Pillow 5.2 - 5.4    |       |  Yes  |  Yes  |  Yes  |  Yes  |       |       |  Yes  |       |       |       |
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|Pillow 5.0 - 5.1    |       |       |  Yes  |  Yes  |  Yes  |       |       |  Yes  |       |       |       |
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|Pillow 4            |       |       |  Yes  |  Yes  |  Yes  |  Yes  |       |  Yes  |       |       |       |
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|Pillow 2 - 3        |       |       |       |  Yes  |  Yes  |  Yes  |  Yes  |  Yes  |  Yes  |       |       |
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+|Pillow < 2          |       |       |       |       |       |       |       |  Yes  |  Yes  |  Yes  |  Yes  |
++--------------------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
 
 Basic Installation
 ------------------
@@ -47,8 +47,8 @@ Basic Installation
 
 Install Pillow with :command:`pip`::
 
-    python -m pip install pip
-    python -m pip install Pillow
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade Pillow
 
 
 Windows Installation
@@ -59,8 +59,8 @@ supported Pythons in both 32 and 64-bit versions in wheel, egg, and
 executable installers. These binaries have all of the optional
 libraries included except for raqm and libimagequant::
 
-    python -m pip install pip
-    python -m pip install Pillow
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade Pillow
 
 
 macOS Installation
@@ -71,8 +71,8 @@ versions in the wheel format. These include support for all optional
 libraries except libimagequant.  Raqm support requires libraqm,
 fribidi, and harfbuzz to be installed separately::
 
-    python -m pip install pip
-    python -m pip install Pillow
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade Pillow
 
 Linux Installation
 ^^^^^^^^^^^^^^^^^^
@@ -82,8 +82,8 @@ versions in the manylinux wheel format. These include support for all
 optional libraries except libimagequant. Raqm support requires
 libraqm, fribidi, and harfbuzz to be installed separately::
 
-    python -m pip install pip
-    python -m pip install Pillow
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade Pillow
 
 Most major Linux distributions, including Fedora, Debian/Ubuntu and
 ArchLinux also include Pillow in packages that previously contained
@@ -137,7 +137,7 @@ Many of Pillow's features require external libraries:
 
 * **libjpeg** provides JPEG functionality.
 
-  * Pillow has been tested with libjpeg versions **6b**, **8**, **9-9c** and
+  * Pillow has been tested with libjpeg versions **6b**, **8**, **9-9d** and
     libjpeg-turbo version **8**.
   * Starting with Pillow 3.0.0, libjpeg is required by default, but
     may be disabled with the ``--disable-jpeg`` flag.
@@ -149,7 +149,7 @@ Many of Pillow's features require external libraries:
 
 * **libtiff** provides compressed TIFF functionality
 
-  * Pillow has been tested with libtiff versions **3.x** and **4.0**
+  * Pillow has been tested with libtiff versions **3.x** and **4.0-4.1**
 
 * **libfreetype** provides type related services
 
@@ -174,7 +174,7 @@ Many of Pillow's features require external libraries:
 
 * **libimagequant** provides improved color quantization
 
-  * Pillow has been tested with libimagequant **2.6-2.12.5**
+  * Pillow has been tested with libimagequant **2.6-2.12.6**
   * Libimagequant is licensed GPLv3, which is more restrictive than
     the Pillow license, therefore we will not be distributing binaries
     with libimagequant support enabled.
@@ -195,8 +195,8 @@ Many of Pillow's features require external libraries:
 
 Once you have installed the prerequisites, run::
 
-    python -m pip install pip
-    python -m pip install Pillow
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade Pillow
 
 If the prerequisites are installed in the standard library locations
 for your machine (e.g. :file:`/usr` or :file:`/usr/local`), no
@@ -206,7 +206,7 @@ those locations by editing :file:`setup.py` or
 :file:`setup.cfg`, or by adding environment variables on the command
 line::
 
-    CFLAGS="-I/usr/pkg/include" python -m pip install pillow
+    CFLAGS="-I/usr/pkg/include" python3 -m pip install --upgrade Pillow
 
 If Pillow has been previously built without the required
 prerequisites, it may be necessary to manually clear the pip cache or
@@ -250,11 +250,11 @@ Build Options
 
 Sample usage::
 
-    MAX_CONCURRENCY=1 python setup.py build_ext --enable-[feature] install
+    MAX_CONCURRENCY=1 python3 setup.py build_ext --enable-[feature] install
 
 or using pip::
 
-    python -m pip install pillow --global-option="build_ext" --global-option="--enable-[feature]"
+    python3 -m pip install --upgrade Pillow --global-option="build_ext" --global-option="--enable-[feature]"
 
 
 Building on macOS
@@ -280,12 +280,12 @@ Then see ``depends/install_raqm_cmake.sh`` to install libraqm.
 
 Now install Pillow with::
 
-    python -m pip install pip
-    python -m pip install Pillow
+    python3 -m pip install --upgrade pip
+    python3 -m pip install --upgrade Pillow
 
 or from within the uncompressed source directory::
 
-    python setup.py install
+    python3 setup.py install
 
 Building on Windows
 ^^^^^^^^^^^^^^^^^^^
@@ -300,10 +300,6 @@ Building on FreeBSD
 .. Note:: Only FreeBSD 10 and 11 tested
 
 Make sure you have Python's development libraries installed::
-
-    sudo pkg install python2
-
-Or for Python 3::
 
     sudo pkg install python3
 
@@ -322,17 +318,9 @@ development libraries installed.
 
 In Debian or Ubuntu::
 
-    sudo apt-get install python-dev python-setuptools
-
-Or for Python 3::
-
     sudo apt-get install python3-dev python3-setuptools
 
 In Fedora, the command is::
-
-    sudo dnf install python-devel redhat-rpm-config
-
-Or for Python 3::
 
     sudo dnf install python3-devel redhat-rpm-config
 
@@ -388,13 +376,13 @@ These platforms are built and tested for every change.
 +----------------------------------+--------------------------+-----------------------+
 |**Operating system**              |**Tested Python versions**|**Tested architecture**|
 +----------------------------------+--------------------------+-----------------------+
-| Alpine                           | 3.7                      |x86-64                 |
+| Alpine                           | 3.8                      |x86-64                 |
 +----------------------------------+--------------------------+-----------------------+
-| Arch                             | 3.7                      |x86-64                 |
+| Arch                             | 3.8                      |x86-64                 |
 +----------------------------------+--------------------------+-----------------------+
 | Amazon Linux 1                   | 3.6                      |x86-64                 |
 +----------------------------------+--------------------------+-----------------------+
-| Amazon Linux 2                   | 3.6                      |x86-64                 |
+| Amazon Linux 2                   | 3.7                      |x86-64                 |
 +----------------------------------+--------------------------+-----------------------+
 | CentOS 6                         | 3.6                      |x86-64                 |
 +----------------------------------+--------------------------+-----------------------+
@@ -410,9 +398,7 @@ These platforms are built and tested for every change.
 +----------------------------------+--------------------------+-----------------------+
 | Fedora 31                        | 3.7                      |x86-64                 |
 +----------------------------------+--------------------------+-----------------------+
-| macOS 10.13 High Sierra          | 3.5, 3.6, 3.7, 3.8       |x86-64                 |
-+----------------------------------+--------------------------+-----------------------+
-| macOS 10.15 Catalina             | PyPy3                    |x86-64                 |
+| macOS 10.15 Catalina             | 3.5, 3.6, 3.7, 3.8, PyPy3|x86-64                 |
 +----------------------------------+--------------------------+-----------------------+
 | Ubuntu Linux 16.04 LTS           | 3.5, 3.6, 3.7, 3.8, PyPy3|x86-64                 |
 +----------------------------------+--------------------------+-----------------------+
@@ -438,6 +424,8 @@ These platforms have been reported to work at the versions mentioned.
 
 +----------------------------------+------------------------------+--------------------------------+-----------------------+
 |**Operating system**              |**Tested Python versions**    |**Latest tested Pillow version**|**Tested processors**  |
++----------------------------------+------------------------------+--------------------------------+-----------------------+
+| macOS 10.15 Catalina             | 3.5, 3.6, 3.7, 3.8           | 7.0.0                          |x86-64                 |
 +----------------------------------+------------------------------+--------------------------------+-----------------------+
 | macOS 10.14 Mojave               | 2.7, 3.5, 3.6, 3.7           | 6.0.0                          |x86-64                 |
 |                                  +------------------------------+--------------------------------+                       +

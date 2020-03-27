@@ -1,19 +1,24 @@
 import subprocess
 import sys
 
-from .helper import PillowTestCase
+import pytest
+
+from .helper import assert_image
 
 try:
     from PIL import ImageGrab
 
-    class TestImageGrab(PillowTestCase):
+    class TestImageGrab:
         def test_grab(self):
             for im in [
                 ImageGrab.grab(),
                 ImageGrab.grab(include_layered_windows=True),
                 ImageGrab.grab(all_screens=True),
             ]:
-                self.assert_image(im, im.mode, im.size)
+                assert_image(im, im.mode, im.size)
+
+            im = ImageGrab.grab(bbox=(10, 20, 50, 80))
+            assert_image(im, im.mode, (40, 60))
 
         def test_grabclipboard(self):
             if sys.platform == "darwin":
@@ -31,17 +36,18 @@ $bmp = New-Object Drawing.Bitmap 200, 200
                 p.communicate()
 
             im = ImageGrab.grabclipboard()
-            self.assert_image(im, im.mode, im.size)
+            assert_image(im, im.mode, im.size)
 
 
 except ImportError:
 
-    class TestImageGrab(PillowTestCase):
+    class TestImageGrab:
+        @pytest.mark.skip(reason="ImageGrab ImportError")
         def test_skip(self):
-            self.skipTest("ImportError")
+            pass
 
 
-class TestImageGrabImport(PillowTestCase):
+class TestImageGrabImport:
     def test_import(self):
         # Arrange
         exception = None
@@ -56,7 +62,7 @@ class TestImageGrabImport(PillowTestCase):
 
         # Assert
         if sys.platform in ["win32", "darwin"]:
-            self.assertIsNone(exception)
+            assert exception is None
         else:
-            self.assertIsInstance(exception, ImportError)
-            self.assertEqual(str(exception), "ImageGrab is macOS and Windows only")
+            assert isinstance(exception, ImportError)
+            assert str(exception) == "ImageGrab is macOS and Windows only"

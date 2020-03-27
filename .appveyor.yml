@@ -33,8 +33,9 @@ install:
 - mv c:\pillow-depends-master c:\pillow-depends
 - xcopy /s c:\pillow-depends\test_images\* c:\pillow\tests\images
 - 7z x ..\pillow-depends\nasm-2.14.02-win64.zip -oc:\
-- ..\pillow-depends\gs950w32.exe /S
-- path c:\nasm-2.14.02;C:\Program Files (x86)\gs\gs9.50\bin;%PATH%
+- curl -fsSL -o gs952.exe https://github.com/ArtifexSoftware/ghostpdl-downloads/releases/download/gs952/gs952w32.exe
+- gs952.exe /S
+- path c:\nasm-2.14.02;C:\Program Files (x86)\gs\gs9.52\bin;%PATH%
 - cd c:\pillow\winbuild\
 - ps: |
       if ($env:PYTHON -eq "c:/vp/pypy3")
@@ -79,7 +80,7 @@ test_script:
 
 after_test:
 - pip install codecov
-- codecov --file coverage.xml --name %PYTHON%
+- codecov --file coverage.xml --name %PYTHON% --flags AppVeyor
 
 matrix:
   fast_finish: true

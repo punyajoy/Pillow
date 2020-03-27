@@ -3,50 +3,29 @@ import distutils.version
 import os
 import re
 import shutil
-import sys
-import unittest
 from io import BytesIO
+from unittest import mock
 
-from PIL import Image, ImageDraw, ImageFont, features
+import pytest
+from PIL import Image, ImageDraw, ImageFont
 
-from .helper import PillowTestCase, is_pypy, is_win32
+from .helper import (
+    PillowTestCase,
+    assert_image_equal,
+    assert_image_similar,
+    assert_image_similar_tofile,
+    is_pypy,
+    is_win32,
+    skip_unless_feature,
+)
 
 FONT_PATH = "Tests/fonts/FreeMono.ttf"
 FONT_SIZE = 20
 
 TEST_TEXT = "hey you\nyou are awesome\nthis looks awkward"
 
-HAS_FREETYPE = features.check("freetype2")
-HAS_RAQM = features.check("raqm")
 
-
-class SimplePatcher:
-    def __init__(self, parent_obj, attr_name, value):
-        self._parent_obj = parent_obj
-        self._attr_name = attr_name
-        self._saved = None
-        self._is_saved = False
-        self._value = value
-
-    def __enter__(self):
-        # Patch the attr on the object
-        if hasattr(self._parent_obj, self._attr_name):
-            self._saved = getattr(self._parent_obj, self._attr_name)
-            setattr(self._parent_obj, self._attr_name, self._value)
-            self._is_saved = True
-        else:
-            setattr(self._parent_obj, self._attr_name, self._value)
-            self._is_saved = False
-
-    def __exit__(self, type, value, traceback):
-        # Restore the original value
-        if self._is_saved:
-            setattr(self._parent_obj, self._attr_name, self._saved)
-        else:
-            delattr(self._parent_obj, self._attr_name)
-
-
-@unittest.skipUnless(HAS_FREETYPE, "ImageFont not available")
+@skip_unless_feature("freetype2")
 class TestImageFont(PillowTestCase):
     LAYOUT_ENGINE = ImageFont.LAYOUT_BASIC
 
@@ -86,23 +65,23 @@ class TestImageFont(PillowTestCase):
         )
 
     def test_sanity(self):
-        self.assertRegex(ImageFont.core.freetype2_version, r"\d+\.\d+\.\d+$")
+        assert re.search(r"\d+\.\d+\.\d+$", ImageFont.core.freetype2_version)
 
     def test_font_properties(self):
         ttf = self.get_font()
-        self.assertEqual(ttf.path, FONT_PATH)
-        self.assertEqual(ttf.size, FONT_SIZE)
+        assert ttf.path == FONT_PATH
+        assert ttf.size == FONT_SIZE
 
         ttf_copy = ttf.font_variant()
-        self.assertEqual(ttf_copy.path, FONT_PATH)
-        self.assertEqual(ttf_copy.size, FONT_SIZE)
+        assert ttf_copy.path == FONT_PATH
+        assert ttf_copy.size == FONT_SIZE
 
         ttf_copy = ttf.font_variant(size=FONT_SIZE + 1)
-        self.assertEqual(ttf_copy.size, FONT_SIZE + 1)
+        assert ttf_copy.size == FONT_SIZE + 1
 
         second_font_path = "Tests/fonts/DejaVuSans.ttf"
         ttf_copy = ttf.font_variant(font=second_font_path)
-        self.assertEqual(ttf_copy.path, second_font_path)
+        assert ttf_copy.path == second_font_path
 
     def test_font_with_name(self):
         self.get_font()
@@ -121,7 +100,8 @@ class TestImageFont(PillowTestCase):
         # Usage note:  making two fonts from the same buffer fails.
         # shared_bytes = self._font_as_bytes()
         # self._render(shared_bytes)
-        # self.assertRaises(Exception, _render, shared_bytes)
+        # with pytest.raises(Exception):
+        #   _render(shared_bytes)
 
     def test_font_with_open_file(self):
         with open(FONT_PATH, "rb") as f:
@@ -147,7 +127,7 @@ class TestImageFont(PillowTestCase):
         finally:
             ImageFont.core.HAVE_RAQM = have_raqm
 
-        self.assertEqual(ttf.layout_engine, ImageFont.LAYOUT_BASIC)
+        assert ttf.layout_engine == ImageFont.LAYOUT_BASIC
 
     def _render(self, font):
         txt = "Hello World!"
@@ -166,7 +146,7 @@ class TestImageFont(PillowTestCase):
             font_filelike = BytesIO(f.read())
         img_filelike = self._render(font_filelike)
 
-        self.assert_image_equal(img_path, img_filelike)
+        assert_image_equal(img_path, img_filelike)
 
     def test_textsize_equal(self):
         im = Image.new(mode="RGB", size=(300, 100))
@@ -182,7 +162,7 @@ class TestImageFont(PillowTestCase):
         with Image.open(target) as target_img:
 
             # Epsilon ~.5 fails with FreeType 2.7
-            self.assert_image_similar(im, target_img, self.metrics["textsize"])
+            assert_image_similar(im, target_img, self.metrics["textsize"])
 
     def test_render_multiline(self):
         im = Image.new(mode="RGB", size=(300, 100))
@@ -201,7 +181,7 @@ class TestImageFont(PillowTestCase):
             # some versions of freetype have different horizontal spacing.
             # setting a tight epsilon, I'm showing the original test failure
             # at epsilon = ~38.
-            self.assert_image_similar(im, target_img, self.metrics["multiline"])
+            assert_image_similar(im, target_img, self.metrics["multiline"])
 
     def test_render_multiline_text(self):
         ttf = self.get_font()
@@ -216,7 +196,7 @@ class TestImageFont(PillowTestCase):
         with Image.open(target) as target_img:
 
             # Epsilon ~.5 fails with FreeType 2.7
-            self.assert_image_similar(im, target_img, self.metrics["multiline"])
+            assert_image_similar(im, target_img, self.metrics["multiline"])
 
         # Test that text() can pass on additional arguments
         # to multiline_text()
@@ -235,7 +215,7 @@ class TestImageFont(PillowTestCase):
             with Image.open(target) as target_img:
 
                 # Epsilon ~.5 fails with FreeType 2.7
-                self.assert_image_similar(im, target_img, self.metrics["multiline"])
+                assert_image_similar(im, target_img, self.metrics["multiline"])
 
     def test_unknown_align(self):
         im = Image.new(mode="RGB", size=(300, 100))
@@ -243,14 +223,8 @@ class TestImageFont(PillowTestCase):
         ttf = self.get_font()
 
         # Act/Assert
-        self.assertRaises(
-            ValueError,
-            draw.multiline_text,
-            (0, 0),
-            TEST_TEXT,
-            font=ttf,
-            align="unknown",
-        )
+        with pytest.raises(ValueError):
+            draw.multiline_text((0, 0), TEST_TEXT, font=ttf, align="unknown")
 
     def test_draw_align(self):
         im = Image.new("RGB", (300, 100), "white")
@@ -265,14 +239,13 @@ class TestImageFont(PillowTestCase):
         draw = ImageDraw.Draw(im)
 
         # Test that textsize() correctly connects to multiline_textsize()
-        self.assertEqual(
-            draw.textsize(TEST_TEXT, font=ttf),
-            draw.multiline_textsize(TEST_TEXT, font=ttf),
+        assert draw.textsize(TEST_TEXT, font=ttf) == draw.multiline_textsize(
+            TEST_TEXT, font=ttf
         )
 
         # Test that multiline_textsize corresponds to ImageFont.textsize()
         # for single line text
-        self.assertEqual(ttf.getsize("A"), draw.multiline_textsize("A", font=ttf))
+        assert ttf.getsize("A") == draw.multiline_textsize("A", font=ttf)
 
         # Test that textsize() can pass on additional arguments
         # to multiline_textsize()
@@ -284,9 +257,9 @@ class TestImageFont(PillowTestCase):
         im = Image.new(mode="RGB", size=(300, 100))
         draw = ImageDraw.Draw(im)
 
-        self.assertEqual(
-            draw.textsize("longest line", font=ttf)[0],
-            draw.multiline_textsize("longest line\nline", font=ttf)[0],
+        assert (
+            draw.textsize("longest line", font=ttf)[0]
+            == draw.multiline_textsize("longest line\nline", font=ttf)[0]
         )
 
     def test_multiline_spacing(self):
@@ -300,7 +273,7 @@ class TestImageFont(PillowTestCase):
         with Image.open(target) as target_img:
 
             # Epsilon ~.5 fails with FreeType 2.7
-            self.assert_image_similar(im, target_img, self.metrics["multiline"])
+            assert_image_similar(im, target_img, self.metrics["multiline"])
 
     def test_rotated_transposed_font(self):
         img_grey = Image.new("L", (100, 100))
@@ -320,8 +293,8 @@ class TestImageFont(PillowTestCase):
         box_size_b = draw.textsize(word)
 
         # Check (w,h) of box a is (h,w) of box b
-        self.assertEqual(box_size_a[0], box_size_b[1])
-        self.assertEqual(box_size_a[1], box_size_b[0])
+        assert box_size_a[0] == box_size_b[1]
+        assert box_size_a[1] == box_size_b[0]
 
     def test_unrotated_transposed_font(self):
         img_grey = Image.new("L", (100, 100))
@@ -341,7 +314,7 @@ class TestImageFont(PillowTestCase):
         box_size_b = draw.textsize(word)
 
         # Check boxes a and b are same size
-        self.assertEqual(box_size_a, box_size_b)
+        assert box_size_a == box_size_b
 
     def test_rotated_transposed_font_get_mask(self):
         # Arrange
@@ -354,7 +327,7 @@ class TestImageFont(PillowTestCase):
         mask = transposed_font.getmask(text)
 
         # Assert
-        self.assertEqual(mask.size, (13, 108))
+        assert mask.size == (13, 108)
 
     def test_unrotated_transposed_font_get_mask(self):
         # Arrange
@@ -367,7 +340,7 @@ class TestImageFont(PillowTestCase):
         mask = transposed_font.getmask(text)
 
         # Assert
-        self.assertEqual(mask.size, (108, 13))
+        assert mask.size == (108, 13)
 
     def test_free_type_font_get_name(self):
         # Arrange
@@ -377,7 +350,7 @@ class TestImageFont(PillowTestCase):
         name = font.getname()
 
         # Assert
-        self.assertEqual(("FreeMono", "Regular"), name)
+        assert ("FreeMono", "Regular") == name
 
     def test_free_type_font_get_metrics(self):
         # Arrange
@@ -387,9 +360,9 @@ class TestImageFont(PillowTestCase):
         ascent, descent = font.getmetrics()
 
         # Assert
-        self.assertIsInstance(ascent, int)
-        self.assertIsInstance(descent, int)
-        self.assertEqual((ascent, descent), (16, 4))  # too exact check?
+        assert isinstance(ascent, int)
+        assert isinstance(descent, int)
+        assert (ascent, descent) == (16, 4)  # too exact check?
 
     def test_free_type_font_get_offset(self):
         # Arrange
@@ -400,7 +373,7 @@ class TestImageFont(PillowTestCase):
         offset = font.getoffset(text)
 
         # Assert
-        self.assertEqual(offset, (0, 3))
+        assert offset == (0, 3)
 
     def test_free_type_font_get_mask(self):
         # Arrange
@@ -411,19 +384,22 @@ class TestImageFont(PillowTestCase):
         mask = font.getmask(text)
 
         # Assert
-        self.assertEqual(mask.size, (108, 13))
+        assert mask.size == (108, 13)
 
     def test_load_path_not_found(self):
         # Arrange
         filename = "somefilenamethatdoesntexist.ttf"
 
         # Act/Assert
-        self.assertRaises(IOError, ImageFont.load_path, filename)
-        self.assertRaises(IOError, ImageFont.truetype, filename)
+        with pytest.raises(IOError):
+            ImageFont.load_path(filename)
+        with pytest.raises(IOError):
+            ImageFont.truetype(filename)
 
     def test_load_non_font_bytes(self):
         with open("Tests/images/hopper.jpg", "rb") as f:
-            self.assertRaises(IOError, ImageFont.truetype, f)
+            with pytest.raises(IOError):
+                ImageFont.truetype(f)
 
     def test_default_font(self):
         # Arrange
@@ -439,13 +415,13 @@ class TestImageFont(PillowTestCase):
             draw.text((10, 10), txt, font=default_font)
 
             # Assert
-            self.assert_image_equal(im, target_img)
+            assert_image_equal(im, target_img)
 
     def test_getsize_empty(self):
         # issue #2614
         font = self.get_font()
         # should not crash.
-        self.assertEqual((0, 0), font.getsize(""))
+        assert (0, 0) == font.getsize("")
 
     def test_render_empty(self):
         # issue 2666
@@ -455,16 +431,16 @@ class TestImageFont(PillowTestCase):
         draw = ImageDraw.Draw(im)
         # should not crash here.
         draw.text((10, 10), "", font=font)
-        self.assert_image_equal(im, target)
+        assert_image_equal(im, target)
 
     def test_unicode_pilfont(self):
         # should not segfault, should return UnicodeDecodeError
         # issue #2826
         font = ImageFont.load_default()
-        with self.assertRaises(UnicodeEncodeError):
+        with pytest.raises(UnicodeEncodeError):
             font.getsize("’")
 
-    @unittest.skipIf(is_pypy(), "failing on PyPy")
+    @pytest.mark.skipif(is_pypy(), reason="failing on PyPy")
     def test_unicode_extended(self):
         # issue #3777
         text = "A\u278A\U0001F12B"
@@ -479,12 +455,12 @@ class TestImageFont(PillowTestCase):
         d = ImageDraw.Draw(img)
         d.text((10, 10), text, font=ttf)
 
-        self.assert_image_similar_tofile(img, target, self.metrics["multiline"])
+        assert_image_similar_tofile(img, target, self.metrics["multiline"])
 
     def _test_fake_loading_font(self, path_to_fake, fontname):
         # Make a copy of FreeTypeFont so we can patch the original
         free_type_font = copy.deepcopy(ImageFont.FreeTypeFont)
-        with SimplePatcher(ImageFont, "_FreeTypeFont", free_type_font):
+        with mock.patch.object(ImageFont, "_FreeTypeFont", free_type_font, create=True):
 
             def loadable_font(filepath, size, index, encoding, *args, **kwargs):
                 if filepath == path_to_fake:
@@ -495,21 +471,20 @@ class TestImageFont(PillowTestCase):
                     filepath, size, index, encoding, *args, **kwargs
                 )
 
-            with SimplePatcher(ImageFont, "FreeTypeFont", loadable_font):
+            with mock.patch.object(ImageFont, "FreeTypeFont", loadable_font):
                 font = ImageFont.truetype(fontname)
                 # Make sure it's loaded
                 name = font.getname()
-                self.assertEqual(("FreeMono", "Regular"), name)
+                assert ("FreeMono", "Regular") == name
 
-    @unittest.skipIf(is_win32(), "requires Unix or macOS")
+    @pytest.mark.skipif(is_win32(), reason="requires Unix or macOS")
     def test_find_linux_font(self):
         # A lot of mocking here - this is more for hitting code and
         # catching syntax like errors
         font_directory = "/usr/local/share/fonts"
-        with SimplePatcher(sys, "platform", "linux"):
-            patched_env = copy.deepcopy(os.environ)
-            patched_env["XDG_DATA_DIRS"] = "/usr/share/:/usr/local/share/"
-            with SimplePatcher(os, "environ", patched_env):
+        with mock.patch("sys.platform", "linux"):
+            patched_env = {"XDG_DATA_DIRS": "/usr/share/:/usr/local/share/"}
+            with mock.patch.dict(os.environ, patched_env):
 
                 def fake_walker(path):
                     if path == font_directory:
@@ -527,7 +502,7 @@ class TestImageFont(PillowTestCase):
                         ]
                     return [(path, [], ["some_random_font.ttf"])]
 
-                with SimplePatcher(os, "walk", fake_walker):
+                with mock.patch("os.walk", fake_walker):
                     # Test that the font loads both with and without the
                     # extension
                     self._test_fake_loading_font(
@@ -547,12 +522,12 @@ class TestImageFont(PillowTestCase):
                         font_directory + "/Duplicate.ttf", "Duplicate"
                     )
 
-    @unittest.skipIf(is_win32(), "requires Unix or macOS")
+    @pytest.mark.skipif(is_win32(), reason="requires Unix or macOS")
     def test_find_macos_font(self):
         # Like the linux test, more cover hitting code rather than testing
         # correctness.
         font_directory = "/System/Library/Fonts"
-        with SimplePatcher(sys, "platform", "darwin"):
+        with mock.patch("sys.platform", "darwin"):
 
             def fake_walker(path):
                 if path == font_directory:
@@ -570,7 +545,7 @@ class TestImageFont(PillowTestCase):
                     ]
                 return [(path, [], ["some_random_font.ttf"])]
 
-            with SimplePatcher(os, "walk", fake_walker):
+            with mock.patch("os.walk", fake_walker):
                 self._test_fake_loading_font(font_directory + "/Arial.ttf", "Arial.ttf")
                 self._test_fake_loading_font(font_directory + "/Arial.ttf", "Arial")
                 self._test_fake_loading_font(font_directory + "/Single.otf", "Single")
@@ -583,24 +558,24 @@ class TestImageFont(PillowTestCase):
         t = self.get_font()
 
         # Act / Assert
-        self.assertEqual(t.getmetrics(), (16, 4))
-        self.assertEqual(t.font.ascent, 16)
-        self.assertEqual(t.font.descent, 4)
-        self.assertEqual(t.font.height, 20)
-        self.assertEqual(t.font.x_ppem, 20)
-        self.assertEqual(t.font.y_ppem, 20)
-        self.assertEqual(t.font.glyphs, 4177)
-        self.assertEqual(t.getsize("A"), (12, 16))
-        self.assertEqual(t.getsize("AB"), (24, 16))
-        self.assertEqual(t.getsize("M"), self.metrics["getters"])
-        self.assertEqual(t.getsize("y"), (12, 20))
-        self.assertEqual(t.getsize("a"), (12, 16))
-        self.assertEqual(t.getsize_multiline("A"), (12, 16))
-        self.assertEqual(t.getsize_multiline("AB"), (24, 16))
-        self.assertEqual(t.getsize_multiline("a"), (12, 16))
-        self.assertEqual(t.getsize_multiline("ABC\n"), (36, 36))
-        self.assertEqual(t.getsize_multiline("ABC\nA"), (36, 36))
-        self.assertEqual(t.getsize_multiline("ABC\nAaaa"), (48, 36))
+        assert t.getmetrics() == (16, 4)
+        assert t.font.ascent == 16
+        assert t.font.descent == 4
+        assert t.font.height == 20
+        assert t.font.x_ppem == 20
+        assert t.font.y_ppem == 20
+        assert t.font.glyphs == 4177
+        assert t.getsize("A") == (12, 16)
+        assert t.getsize("AB") == (24, 16)
+        assert t.getsize("M") == self.metrics["getters"]
+        assert t.getsize("y") == (12, 20)
+        assert t.getsize("a") == (12, 16)
+        assert t.getsize_multiline("A") == (12, 16)
+        assert t.getsize_multiline("AB") == (24, 16)
+        assert t.getsize_multiline("a") == (12, 16)
+        assert t.getsize_multiline("ABC\n") == (36, 36)
+        assert t.getsize_multiline("ABC\nA") == (36, 36)
+        assert t.getsize_multiline("ABC\nAaaa") == (48, 36)
 
     def test_getsize_stroke(self):
         # Arrange
@@ -608,13 +583,13 @@ class TestImageFont(PillowTestCase):
 
         # Act / Assert
         for stroke_width in [0, 2]:
-            self.assertEqual(
-                t.getsize("A", stroke_width=stroke_width),
-                (12 + stroke_width * 2, 16 + stroke_width * 2),
+            assert t.getsize("A", stroke_width=stroke_width) == (
+                12 + stroke_width * 2,
+                16 + stroke_width * 2,
             )
-            self.assertEqual(
-                t.getsize_multiline("ABC\nAaaa", stroke_width=stroke_width),
-                (48 + stroke_width * 2, 36 + stroke_width * 4),
+            assert t.getsize_multiline("ABC\nAaaa", stroke_width=stroke_width) == (
+                48 + stroke_width * 2,
+                36 + stroke_width * 4,
             )
 
     def test_complex_font_settings(self):
@@ -622,81 +597,80 @@ class TestImageFont(PillowTestCase):
         t = self.get_font()
         # Act / Assert
         if t.layout_engine == ImageFont.LAYOUT_BASIC:
-            self.assertRaises(KeyError, t.getmask, "абвг", direction="rtl")
-            self.assertRaises(KeyError, t.getmask, "абвг", features=["-kern"])
-            self.assertRaises(KeyError, t.getmask, "абвг", language="sr")
+            with pytest.raises(KeyError):
+                t.getmask("абвг", direction="rtl")
+            with pytest.raises(KeyError):
+                t.getmask("абвг", features=["-kern"])
+            with pytest.raises(KeyError):
+                t.getmask("абвг", language="sr")
 
     def test_variation_get(self):
         font = self.get_font()
 
         freetype = distutils.version.StrictVersion(ImageFont.core.freetype2_version)
         if freetype < "2.9.1":
-            self.assertRaises(NotImplementedError, font.get_variation_names)
-            self.assertRaises(NotImplementedError, font.get_variation_axes)
+            with pytest.raises(NotImplementedError):
+                font.get_variation_names()
+            with pytest.raises(NotImplementedError):
+                font.get_variation_axes()
             return
 
-        self.assertRaises(IOError, font.get_variation_names)
-        self.assertRaises(IOError, font.get_variation_axes)
+        with pytest.raises(IOError):
+            font.get_variation_names()
+        with pytest.raises(IOError):
+            font.get_variation_axes()
 
         font = ImageFont.truetype("Tests/fonts/AdobeVFPrototype.ttf")
-        self.assertEqual(
-            font.get_variation_names(),
-            [
-                b"ExtraLight",
-                b"Light",
-                b"Regular",
-                b"Semibold",
-                b"Bold",
-                b"Black",
-                b"Black Medium Contrast",
-                b"Black High Contrast",
-                b"Default",
-            ],
-        )
-        self.assertEqual(
-            font.get_variation_axes(),
-            [
-                {"name": b"Weight", "minimum": 200, "maximum": 900, "default": 389},
-                {"name": b"Contrast", "minimum": 0, "maximum": 100, "default": 0},
-            ],
-        )
+        assert font.get_variation_names(), [
+            b"ExtraLight",
+            b"Light",
+            b"Regular",
+            b"Semibold",
+            b"Bold",
+            b"Black",
+            b"Black Medium Contrast",
+            b"Black High Contrast",
+            b"Default",
+        ]
+        assert font.get_variation_axes() == [
+            {"name": b"Weight", "minimum": 200, "maximum": 900, "default": 389},
+            {"name": b"Contrast", "minimum": 0, "maximum": 100, "default": 0},
+        ]
 
         font = ImageFont.truetype("Tests/fonts/TINY5x3GX.ttf")
-        self.assertEqual(
-            font.get_variation_names(),
-            [
-                b"20",
-                b"40",
-                b"60",
-                b"80",
-                b"100",
-                b"120",
-                b"140",
-                b"160",
-                b"180",
-                b"200",
-                b"220",
-                b"240",
-                b"260",
-                b"280",
-                b"300",
-                b"Regular",
-            ],
-        )
-        self.assertEqual(
-            font.get_variation_axes(),
-            [{"name": b"Size", "minimum": 0, "maximum": 300, "default": 0}],
-        )
+        assert font.get_variation_names() == [
+            b"20",
+            b"40",
+            b"60",
+            b"80",
+            b"100",
+            b"120",
+            b"140",
+            b"160",
+            b"180",
+            b"200",
+            b"220",
+            b"240",
+            b"260",
+            b"280",
+            b"300",
+            b"Regular",
+        ]
+        assert font.get_variation_axes() == [
+            {"name": b"Size", "minimum": 0, "maximum": 300, "default": 0}
+        ]
 
     def test_variation_set_by_name(self):
         font = self.get_font()
 
         freetype = distutils.version.StrictVersion(ImageFont.core.freetype2_version)
         if freetype < "2.9.1":
-            self.assertRaises(NotImplementedError, font.set_variation_by_name, "Bold")
+            with pytest.raises(NotImplementedError):
+                font.set_variation_by_name("Bold")
             return
 
-        self.assertRaises(IOError, font.set_variation_by_name, "Bold")
+        with pytest.raises(IOError):
+            font.set_variation_by_name("Bold")
 
         def _check_text(font, path, epsilon):
             im = Image.new("RGB", (100, 75), "white")
@@ -704,7 +678,7 @@ class TestImageFont(PillowTestCase):
             d.text((10, 10), "Text", font=font, fill="black")
 
             with Image.open(path) as expected:
-                self.assert_image_similar(im, expected, epsilon)
+                assert_image_similar(im, expected, epsilon)
 
         font = ImageFont.truetype("Tests/fonts/AdobeVFPrototype.ttf", 36)
         _check_text(font, "Tests/images/variation_adobe.png", 11)
@@ -723,10 +697,12 @@ class TestImageFont(PillowTestCase):
 
         freetype = distutils.version.StrictVersion(ImageFont.core.freetype2_version)
         if freetype < "2.9.1":
-            self.assertRaises(NotImplementedError, font.set_variation_by_axes, [100])
+            with pytest.raises(NotImplementedError):
+                font.set_variation_by_axes([100])
             return
 
-        self.assertRaises(IOError, font.set_variation_by_axes, [500, 50])
+        with pytest.raises(IOError):
+            font.set_variation_by_axes([500, 50])
 
         def _check_text(font, path, epsilon):
             im = Image.new("RGB", (100, 75), "white")
@@ -734,7 +710,7 @@ class TestImageFont(PillowTestCase):
             d.text((10, 10), "Text", font=font, fill="black")
 
             with Image.open(path) as expected:
-                self.assert_image_similar(im, expected, epsilon)
+                assert_image_similar(im, expected, epsilon)
 
         font = ImageFont.truetype("Tests/fonts/AdobeVFPrototype.ttf", 36)
         font.set_variation_by_axes([500, 50])
@@ -745,6 +721,6 @@ class TestImageFont(PillowTestCase):
         _check_text(font, "Tests/images/variation_tiny_axes.png", 32.5)
 
 
-@unittest.skipUnless(HAS_RAQM, "Raqm not Available")
+@skip_unless_feature("raqm")
 class TestImageFont_RaqmLayout(TestImageFont):
     LAYOUT_ENGINE = ImageFont.LAYOUT_RAQM

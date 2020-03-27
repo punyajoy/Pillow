@@ -42,7 +42,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Pillow (PIL Fork)"
-copyright = "1995-2011 Fredrik Lundh, 2010-2019 Alex Clark and Contributors"
+copyright = "1995-2011 Fredrik Lundh, 2010-2020 Alex Clark and Contributors"
 author = "Fredrik Lundh, Alex Clark and Contributors"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -129,7 +129,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-# html_favicon = None
+html_favicon = "resources/favicon.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

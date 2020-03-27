@@ -55,8 +55,19 @@ ImagingGetBBox(Imaging im, int bbox[4])
 	GETBBOX(image8, 0xff);
     } else {
 	INT32 mask = 0xffffffff;
-	if (im->bands == 3)
+	if (im->bands == 3) {
 	    ((UINT8*) &mask)[3] = 0;
+	} else if (strcmp(im->mode, "RGBa") == 0 ||
+	           strcmp(im->mode, "RGBA") == 0 ||
+	           strcmp(im->mode, "La") == 0 ||
+	           strcmp(im->mode, "LA") == 0 ||
+	           strcmp(im->mode, "PA") == 0) {
+#ifdef WORDS_BIGENDIAN
+	    mask = 0x000000ff;
+#else
+	    mask = 0xff000000;
+#endif
+	}
 	GETBBOX(image32, mask);
     }
 
@@ -166,11 +177,21 @@ ImagingGetExtrema(Imaging im, void *extrema)
     case IMAGING_TYPE_SPECIAL:
       if (strcmp(im->mode, "I;16") == 0) {
           UINT16 v;
-          memcpy(&v, *im->image8, sizeof(v));
+          UINT8* pixel = *im->image8;
+#ifdef WORDS_BIGENDIAN
+          v = pixel[0] + (pixel[1] << 8);
+#else
+          memcpy(&v, pixel, sizeof(v));
+#endif
           imin = imax = v;
           for (y = 0; y < im->ysize; y++) {
               for (x = 0; x < im->xsize; x++) {
-                  memcpy(&v, im->image[y] + x * sizeof(v), sizeof(v));
+                  pixel = im->image[y] + x * sizeof(v);
+#ifdef WORDS_BIGENDIAN
+                  v = pixel[0] + (pixel[1] << 8);
+#else
+                  memcpy(&v, pixel, sizeof(v));
+#endif
                   if (imin > v)
                       imin = v;
                   else if (imax < v)

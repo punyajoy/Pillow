@@ -56,20 +56,24 @@ To report a security vulnerability, please follow the procedure described in the
    :target: https://travis-ci.org/python-pillow/pillow-wheels
    :alt: Travis CI build status (macOS)
 
-.. |windows| image:: https://img.shields.io/appveyor/ci/python-pillow/Pillow/master.svg?label=Windows%20build
+.. |windows| image:: https://img.shields.io/appveyor/build/python-pillow/Pillow/master.svg?label=Windows%20build
    :target: https://ci.appveyor.com/project/python-pillow/Pillow
    :alt: AppVeyor CI build status (Windows)
 
 .. |gha_lint| image:: https://github.com/python-pillow/Pillow/workflows/Lint/badge.svg
+   :target: https://github.com/python-pillow/Pillow/actions?query=workflow%3ALint
    :alt: GitHub Actions build status (Lint)
 
 .. |gha_docker| image:: https://github.com/python-pillow/Pillow/workflows/Test%20Docker/badge.svg
+   :target: https://github.com/python-pillow/Pillow/actions?query=workflow%3A%22Test+Docker%22
    :alt: GitHub Actions build status (Test Docker)
 
 .. |gha| image:: https://github.com/python-pillow/Pillow/workflows/Test/badge.svg
+   :target: https://github.com/python-pillow/Pillow/actions?query=workflow%3ATest
    :alt: GitHub Actions build status (Test Linux and macOS)
 
 .. |gha_windows| image:: https://github.com/python-pillow/Pillow/workflows/Test%20Windows/badge.svg
+   :target: https://github.com/python-pillow/Pillow/actions?query=workflow%3A%22Test+Windows%22
    :alt: GitHub Actions build status (Test Windows)
 
 .. |coverage| image:: https://codecov.io/gh/python-pillow/Pillow/branch/master/graph/badge.svg
