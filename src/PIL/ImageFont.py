@@ -259,7 +259,7 @@ class FreeTypeFont:
 
         :return: (width, height)
         """
-        size, offset = self.font.getsize(text, False, direction, features, language)
+        size, offset = self.font.getsize(text, "L", direction, features, language)
         return (
             size[0] + stroke_width * 2 + offset[0],
             size[1] + stroke_width * 2 + offset[1],
@@ -345,12 +345,14 @@ class FreeTypeFont:
         features=None,
         language=None,
         stroke_width=0,
+        ink=0,
     ):
         """
         Create a bitmap for the text.
 
         If the font uses antialiasing, the bitmap should have mode ``L`` and use a
-        maximum value of 255. Otherwise, it should have mode ``1``.
+        maximum value of 255. If the font has embedded color data, the bitmap
+        should have mode ``RGBA``. Otherwise, it should have mode ``1``.
 
         :param text: Text to render.
         :param mode: Used by some graphics drivers to indicate what mode the
@@ -392,6 +394,10 @@ class FreeTypeFont:
         :param stroke_width: The width of the text stroke.
 
                          .. versionadded:: 6.2.0
+
+        :param ink: Foreground ink for rendering in RGBA mode.
+
+                         .. versionadded:: 8.0.0
 
         :return: An internal PIL storage memory instance as defined by the
                  :py:mod:`PIL.Image.core` interface module.
@@ -403,6 +409,7 @@ class FreeTypeFont:
             features=features,
             language=language,
             stroke_width=stroke_width,
+            ink=ink,
         )[0]
 
     def getmask2(
@@ -414,6 +421,7 @@ class FreeTypeFont:
         features=None,
         language=None,
         stroke_width=0,
+        ink=0,
         *args,
         **kwargs
     ):
@@ -421,7 +429,8 @@ class FreeTypeFont:
         Create a bitmap for the text.
 
         If the font uses antialiasing, the bitmap should have mode ``L`` and use a
-        maximum value of 255. Otherwise, it should have mode ``1``.
+        maximum value of 255. If the font has embedded color data, the bitmap
+        should have mode ``RGBA``. Otherwise, it should have mode ``1``.
 
         :param text: Text to render.
         :param mode: Used by some graphics drivers to indicate what mode the
@@ -464,17 +473,19 @@ class FreeTypeFont:
 
                          .. versionadded:: 6.2.0
 
+        :param ink: Foreground ink for rendering in RGBA mode.
+
+                         .. versionadded:: 8.0.0
+
         :return: A tuple of an internal PIL storage memory instance as defined by the
                  :py:mod:`PIL.Image.core` interface module, and the text offset, the
                  gap between the starting coordinate and the first marking
         """
-        size, offset = self.font.getsize(
-            text, mode == "1", direction, features, language
-        )
+        size, offset = self.font.getsize(text, mode, direction, features, language)
         size = size[0] + stroke_width * 2, size[1] + stroke_width * 2
-        im = fill("L", size, 0)
+        im = fill("RGBA" if mode == "RGBA" else "L", size, 0)
         self.font.render(
-            text, im.id, mode == "1", direction, features, language, stroke_width
+            text, im.id, mode, direction, features, language, stroke_width, ink
         )
         return im, offset
 
