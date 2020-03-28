@@ -275,6 +275,7 @@ class ImageDraw:
         language=None,
         stroke_width=0,
         stroke_fill=None,
+        embedded_color=False,
         *args,
         **kwargs
     ):
@@ -292,7 +293,11 @@ class ImageDraw:
                 language,
                 stroke_width,
                 stroke_fill,
+                embedded_color
             )
+
+        if embedded_color and self.mode not in ('RGB', 'RGBA'):
+            raise ValueError('Embedded color supported only in RGB and RGBA modes')
 
         if font is None:
             font = self.getfont()
@@ -305,10 +310,40 @@ class ImageDraw:
 
         def draw_text(ink, stroke_width=0, stroke_offset=None):
             coord = xy
-            try:
-                mask, offset = font.getmask2(
+            if not embedded_color:
+                try:
+                    mask, offset = font.getmask2(
+                        text,
+                        self.fontmode,
+                        direction=direction,
+                        features=features,
+                        language=language,
+                        stroke_width=stroke_width,
+                        *args,
+                        **kwargs,
+                    )
+                    coord = coord[0] + offset[0], coord[1] + offset[1]
+                except AttributeError:
+                    try:
+                        mask = font.getmask(
+                            text,
+                            self.fontmode,
+                            direction,
+                            features,
+                            language,
+                            stroke_width,
+                            *args,
+                            **kwargs,
+                        )
+                    except TypeError:
+                        mask = font.getmask(text)
+                if stroke_offset:
+                    coord = coord[0] + stroke_offset[0], coord[1] + stroke_offset[1]
+                self.draw.draw_bitmap(coord, mask, ink)
+            else:
+                im, offset = font.render2(
                     text,
-                    self.fontmode,
+                    ink,
                     direction=direction,
                     features=features,
                     language=language,
@@ -316,24 +351,9 @@ class ImageDraw:
                     *args,
                     **kwargs,
                 )
-                coord = coord[0] + offset[0], coord[1] + offset[1]
-            except AttributeError:
-                try:
-                    mask = font.getmask(
-                        text,
-                        self.fontmode,
-                        direction,
-                        features,
-                        language,
-                        stroke_width,
-                        *args,
-                        **kwargs,
-                    )
-                except TypeError:
-                    mask = font.getmask(text)
-            if stroke_offset:
-                coord = coord[0] + stroke_offset[0], coord[1] + stroke_offset[1]
-            self.draw.draw_bitmap(coord, mask, ink)
+                coord1 = coord[0] + offset[0], coord[1] + offset[1]
+                coord2 = coord1[0] + im.size[0], coord1[1] + im.size[1]
+                self.im.paste(im, coord1 + coord2, im)
 
         ink = getink(fill)
         if ink is not None:
@@ -365,6 +385,7 @@ class ImageDraw:
         language=None,
         stroke_width=0,
         stroke_fill=None,
+        embedded_color=False,
     ):
         widths = []
         max_width = 0
@@ -404,6 +425,7 @@ class ImageDraw:
                 language=language,
                 stroke_width=stroke_width,
                 stroke_fill=stroke_fill,
+                embedded_color=embedded_color,
             )
             top += line_spacing
             left = xy[0]

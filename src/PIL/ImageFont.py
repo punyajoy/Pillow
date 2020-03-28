@@ -474,7 +474,131 @@ class FreeTypeFont:
         size = size[0] + stroke_width * 2, size[1] + stroke_width * 2
         im = fill("L", size, 0)
         self.font.render(
-            text, im.id, mode == "1", direction, features, language, stroke_width
+            text,
+            im.id,
+            mode == "1",
+            direction,
+            features,
+            language,
+            stroke_width,
+            False,
+            0,
+        )
+        return im, offset
+
+    def render(
+        self,
+        text,
+        foreground_ink,
+        direction=None,
+        features=None,
+        language=None,
+        stroke_width=0,
+    ):
+        """
+        Create a RGBA bitmap for the text using embedded colors if available.
+
+        :param text: Text to render.
+        :param foreground_ink: Internal representation of the text foreground color.
+        :param direction: Direction of the text. It can be 'rtl' (right to
+                          left), 'ltr' (left to right) or 'ttb' (top to bottom).
+                          Requires libraqm.
+        :param features: A list of OpenType font features to be used during text
+                         layout. This is usually used to turn on optional
+                         font features that are not enabled by default,
+                         for example 'dlig' or 'ss01', but can be also
+                         used to turn off default font features for
+                         example '-liga' to disable ligatures or '-kern'
+                         to disable kerning.  To get all supported
+                         features, see
+                         https://docs.microsoft.com/en-us/typography/opentype/spec/featurelist
+                         Requires libraqm.
+        :param language: Language of the text. Different languages may use
+                         different glyph shapes or ligatures. This parameter tells
+                         the font which language the text is in, and to apply the
+                         correct substitutions as appropriate, if available.
+                         It should be a `BCP 47 language code
+                         <https://www.w3.org/International/articles/language-tags/>`
+                         Requires libraqm.
+
+        :param stroke_width: The width of the text stroke.
+
+        :return: An internal PIL storage memory instance as defined by the
+                 :py:mod:`PIL.Image.core` interface module.
+
+        .. versionadded:: 7.1.0
+
+        """
+        return self.render2(
+            text,
+            foreground_ink,
+            direction=direction,
+            features=features,
+            language=language,
+            stroke_width=stroke_width,
+        )[0]
+
+    def render2(
+        self,
+        text,
+        foreground_ink,
+        fill=Image.core.fill,
+        direction=None,
+        features=None,
+        language=None,
+        stroke_width=0,
+        *args,
+        **kwargs
+    ):
+        """
+        Create a RGBA bitmap for the text using embedded colors if available.
+
+        :param text: Text to render.
+        :param foreground_ink: Internal representation of the text foreground color.
+        :param direction: Direction of the text. It can be 'rtl' (right to
+                          left), 'ltr' (left to right) or 'ttb' (top to bottom).
+                          Requires libraqm.
+        :param features: A list of OpenType font features to be used during text
+                         layout. This is usually used to turn on optional
+                         font features that are not enabled by default,
+                         for example 'dlig' or 'ss01', but can be also
+                         used to turn off default font features for
+                         example '-liga' to disable ligatures or '-kern'
+                         to disable kerning.  To get all supported
+                         features, see
+                         https://docs.microsoft.com/en-us/typography/opentype/spec/featurelist
+                         Requires libraqm.
+        :param language: Language of the text. Different languages may use
+                         different glyph shapes or ligatures. This parameter tells
+                         the font which language the text is in, and to apply the
+                         correct substitutions as appropriate, if available.
+                         It should be a `BCP 47 language code
+                         <https://www.w3.org/International/articles/language-tags/>`
+                         Requires libraqm.
+        :param stroke_width: The width of the text stroke.
+
+        :return: A tuple of an internal PIL storage memory instance as defined by the
+                 :py:mod:`PIL.Image.core` interface module, and the text offset, the
+                 gap between the starting coordinate and the first marking
+
+        .. versionadded:: 7.1.0
+
+        """
+        size, offset = self.font.getsize(
+            text, False, direction, features, language
+        )
+        size = size[0] + stroke_width * 2, size[1] + stroke_width * 2
+        im = fill("RGBA", size, 0)
+        self.font.render(
+            text,
+            im.id,
+            False,
+            direction,
+            features,
+            language,
+            stroke_width,
+            True,
+            foreground_ink,
         )
         return im, offset
 

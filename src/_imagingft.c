@@ -28,6 +28,9 @@
 #include FT_STROKER_H
 #include FT_MULTIPLE_MASTERS_H
 #include FT_SFNT_NAMES_H
+#ifdef FT_COLOR_H
+#include FT_COLOR_H
+#endif
 
 #define KEEP_PY_UNICODE
 
@@ -779,6 +782,8 @@ font_render(FontObject* self, PyObject* args)
     PyObject* string;
     Py_ssize_t id;
     int mask = 0;
+    int embedded_color = 0;
+    PY_LONG_LONG foreground_ink = 0;
     int temp;
     int xx, x0, x1;
     int yy;
@@ -789,10 +794,21 @@ font_render(FontObject* self, PyObject* args)
     GlyphInfo *glyph_info;
     PyObject *features = NULL;
 
-    if (!PyArg_ParseTuple(args, "On|izOzi:render", &string,  &id, &mask, &dir, &features, &lang,
-                                                   &stroke_width)) {
+    if (!PyArg_ParseTuple(args, "On|izOziiL:render", &string,  &id, &mask, &dir, &features, &lang,
+                                                   &stroke_width, &embedded_color, &foreground_ink)) {
         return NULL;
     }
+
+#ifdef FT_COLOR_H
+    if (embedded_color) {
+        FT_Color foreground_color;
+        foreground_color.red = (FT_Byte) foreground_ink;
+        foreground_color.green = (FT_Byte) foreground_ink >> 8;
+        foreground_color.blue = (FT_Byte) foreground_ink >> 16;
+        foreground_color.alpha = (FT_Byte) foreground_ink >> 24;
+        FT_Palette_Set_Foreground_Color(self->face, foreground_color);
+    }
+#endif
 
     glyph_info = NULL;
     count = text_layout(string, self, dir, features, lang, &glyph_info, mask);
@@ -818,6 +834,11 @@ font_render(FontObject* self, PyObject* args)
     if (mask) {
         load_flags |= FT_LOAD_TARGET_MONO;
     }
+#if FREETYPE_MAJOR > 2 || (FREETYPE_MAJOR == 2 && FREETYPE_MINOR >= 5)
+    if (embedded_color) {
+        load_flags |= FT_LOAD_COLOR;
+    }
+#endif
 
     ascender = 0;
     for (i = 0; i < count; i++) {
@@ -906,25 +927,58 @@ font_render(FontObject* self, PyObject* args)
             }
             if (yy >= 0 && yy < im->ysize) {
                 // blend this glyph into the buffer
-                unsigned char *target = im->image8[yy] + xx;
-                if (mask) {
-                    // use monochrome mask (on palette images, etc)
-                    int j, k, m = 128;
-                    for (j = k = 0; j < x1; j++) {
-                        if (j >= x0 && (source[k] & m)) {
-                            target[j] = 255;
+                if (embedded_color) {
+                    unsigned int tmp1, v;
+                    unsigned char *target = im->image[yy] + xx * 4;
+#if FREETYPE_MAJOR > 2 || (FREETYPE_MAJOR == 2 && FREETYPE_MINOR >= 5)
+                    if (bitmap.pixel_mode == FT_PIXEL_MODE_BGRA) {
+                        // paste color glyph
+                        int k;
+                        for (k = x0; k < x1; k++) {
+                            v = MULDIV255(source[k * 4 + 3], (unsigned char) foreground_ink >> 24, tmp1);
+                            if (target[k * 4 + 3] < v) {
+                                target[k * 4 + 0] = CLIP8((255 * (int)source[k * 4 + 2]) / source[k * 4 + 3]);
+                                target[k * 4 + 1] = CLIP8((255 * (int)source[k * 4 + 1]) / source[k * 4 + 3]);
+                                target[k * 4 + 2] = CLIP8((255 * (int)source[k * 4 + 0]) / source[k * 4 + 3]);
+                                target[k * 4 + 3] = v;
+                            }
                         }
-                        if (!(m >>= 1)) {
-                            m = 128;
-                            k++;
+                    } else
+#endif
+                    { // pixel_mode should be FT_PIXEL_MODE_GRAY
+                        // fill with ink
+                        int k;
+                        for (k = x0; k < x1; k++) {
+                            v = MULDIV255(source[k], (unsigned char) foreground_ink >> 24, tmp1);
+                            if (target[k * 4 + 3] < v) {
+                                target[k * 4 + 0] = (unsigned char) foreground_ink;
+                                target[k * 4 + 1] = (unsigned char) foreground_ink >> 8;
+                                target[k * 4 + 2] = (unsigned char) foreground_ink >> 16;
+                                target[k * 4 + 3] = v;
+                            }
                         }
                     }
                 } else {
-                    // use antialiased rendering
-                    int k;
-                    for (k = x0; k < x1; k++) {
-                        if (target[k] < source[k]) {
-                            target[k] = source[k];
+                    unsigned char *target = im->image8[yy] + xx;
+                    if (mask) {
+                        // use monochrome mask (on palette images, etc)
+                        int j, k, m = 128;
+                        for (j = k = 0; j < x1; j++) {
+                            if (j >= x0 && (source[k] & m)) {
+                                target[j] = 255;
+                            }
+                            if (!(m >>= 1)) {
+                                m = 128;
+                                k++;
+                            }
+                        }
+                    } else {
+                        // use antialiased rendering
+                        int k;
+                        for (k = x0; k < x1; k++) {
+                            if (target[k] < source[k]) {
+                                target[k] = source[k];
+                            }
                         }
                     }
                 }
