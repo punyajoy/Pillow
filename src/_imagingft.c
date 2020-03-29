@@ -564,7 +564,7 @@ text_layout_fallback(PyObject* string, FontObject* self, const char* dir, PyObje
         return 0;
     }
 
-    load_flags = FT_LOAD_NO_BITMAP;
+    load_flags = FT_LOAD_DEFAULT;
     if (mask) {
         load_flags |= FT_LOAD_TARGET_MONO;
     }
@@ -647,10 +647,7 @@ font_getsize(FontObject* self, PyObject* args)
         FT_Glyph glyph;
         face = self->face;
         index = glyph_info[i].index;
-        /* Note: bitmap fonts within ttf fonts do not work, see #891/pr#960
-         *   Yifu Yu<root@jackyyf.com>, 2014-10-15
-         */
-        load_flags = FT_LOAD_NO_BITMAP;
+        load_flags = FT_LOAD_DEFAULT;
         if (mask) {
             load_flags |= FT_LOAD_TARGET_MONO;
         }
@@ -829,8 +826,7 @@ font_render(FontObject* self, PyObject* args)
     }
 
     im = (Imaging) id;
-    /* Note: bitmap fonts within ttf fonts do not work, see #891/pr#960 */
-    load_flags = FT_LOAD_NO_BITMAP;
+    load_flags = FT_LOAD_DEFAULT;
     if (mask) {
         load_flags |= FT_LOAD_TARGET_MONO;
     }
@@ -927,57 +923,80 @@ font_render(FontObject* self, PyObject* args)
             }
             if (yy >= 0 && yy < im->ysize) {
                 // blend this glyph into the buffer
+                unsigned char* target;
                 if (embedded_color) {
-                    unsigned int tmp1, v;
-                    unsigned char *target = im->image[yy] + xx * 4;
+                    target = im->image[yy] + xx * 4;
+                } else {
+                    target = im->image8[yy] + xx;
+                }
 #if FREETYPE_MAJOR > 2 || (FREETYPE_MAJOR == 2 && FREETYPE_MINOR >= 5)
-                    if (bitmap.pixel_mode == FT_PIXEL_MODE_BGRA) {
-                        // paste color glyph
-                        int k;
+                if (embedded_color && bitmap.pixel_mode == FT_PIXEL_MODE_BGRA) {
+                    int k, v, tmp1;
+                    for (k = x0; k < x1; k++) {
+                        v = MULDIV255(source[k * 4 + 3], (unsigned char) (foreground_ink >> 24), tmp1);
+                        if (target[k * 4 + 3] < v) {
+                            target[k * 4 + 0] = CLIP8((255 * (int)source[k * 4 + 2]) / source[k * 4 + 3]);
+                            target[k * 4 + 1] = CLIP8((255 * (int)source[k * 4 + 1]) / source[k * 4 + 3]);
+                            target[k * 4 + 2] = CLIP8((255 * (int)source[k * 4 + 0]) / source[k * 4 + 3]);
+                            target[k * 4 + 3] = v;
+                        }
+                    }
+                } else
+#endif
+                // handle 8bpp separately for performance
+                if (bitmap.pixel_mode == FT_PIXEL_MODE_GRAY) {
+                    int k, v, tmp1;
+                    if (embedded_color) {
                         for (k = x0; k < x1; k++) {
-                            v = MULDIV255(source[k * 4 + 3], (unsigned char) foreground_ink >> 24, tmp1);
+                            v = MULDIV255(source[k], (unsigned char) (foreground_ink >> 24), tmp1);
                             if (target[k * 4 + 3] < v) {
-                                target[k * 4 + 0] = CLIP8((255 * (int)source[k * 4 + 2]) / source[k * 4 + 3]);
-                                target[k * 4 + 1] = CLIP8((255 * (int)source[k * 4 + 1]) / source[k * 4 + 3]);
-                                target[k * 4 + 2] = CLIP8((255 * (int)source[k * 4 + 0]) / source[k * 4 + 3]);
+                                target[k * 4 + 0] = (unsigned char) foreground_ink;
+                                target[k * 4 + 1] = (unsigned char) (foreground_ink >> 8);
+                                target[k * 4 + 2] = (unsigned char) (foreground_ink >> 16);
                                 target[k * 4 + 3] = v;
                             }
                         }
-                    } else
-#endif
-                    { // pixel_mode should be FT_PIXEL_MODE_GRAY
-                        // fill with ink
-                        int k;
+                    } else {
                         for (k = x0; k < x1; k++) {
-                            v = MULDIV255(source[k], (unsigned char) foreground_ink >> 24, tmp1);
-                            if (target[k * 4 + 3] < v) {
-                                target[k * 4 + 0] = (unsigned char) foreground_ink;
-                                target[k * 4 + 1] = (unsigned char) foreground_ink >> 8;
-                                target[k * 4 + 2] = (unsigned char) foreground_ink >> 16;
-                                target[k * 4 + 3] = v;
+                            if (target[k] < source[k]) {
+                                target[k] = source[k];
                             }
                         }
                     }
                 } else {
-                    unsigned char *target = im->image8[yy] + xx;
-                    if (mask) {
-                        // use monochrome mask (on palette images, etc)
-                        int j, k, m = 128;
-                        for (j = k = 0; j < x1; j++) {
-                            if (j >= x0 && (source[k] & m)) {
-                                target[j] = 255;
+                    int k, v, tmp1, m, a, b;
+                    switch (bitmap.pixel_mode) {
+                    case FT_PIXEL_MODE_MONO:
+                        a = 3;
+                        b = 7;
+                        m = 0x80;
+                        break;
+                    case FT_PIXEL_MODE_GRAY2:
+                        a = 2;
+                        b = 3;
+                        m = 0xC0;
+                        break;
+                    case FT_PIXEL_MODE_GRAY4:
+                        a = 1;
+                        b = 1;
+                        m = 0xF0;
+                        break;
+                    default:
+                        PyErr_SetString(PyExc_IOError, "unsupported bitmap pixel mode");
+                        return NULL;
+                    }
+                    for (k = x0; k < x1; k++) {
+                        v = CLIP8(255 * ((source[k >> a] << (k & b)) & m) / m);
+                        if (embedded_color) {
+                            if (target[k * 4 + 3] < v) {
+                                target[k * 4 + 0] = (unsigned char) foreground_ink;
+                                target[k * 4 + 1] = (unsigned char) (foreground_ink >> 8);
+                                target[k * 4 + 2] = (unsigned char) (foreground_ink >> 16);
+                                target[k * 4 + 3] = v;
                             }
-                            if (!(m >>= 1)) {
-                                m = 128;
-                                k++;
-                            }
-                        }
-                    } else {
-                        // use antialiased rendering
-                        int k;
-                        for (k = x0; k < x1; k++) {
-                            if (target[k] < source[k]) {
-                                target[k] = source[k];
+                        } else {
+                            if (target[k] < v) {
+                                target[k] = v;
                             }
                         }
                     }
