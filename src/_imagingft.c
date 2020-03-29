@@ -258,7 +258,7 @@ getfont(PyObject* self_, PyObject* args, PyObject* kw)
     int error = 0;
 
     char* filename = NULL;
-    Py_ssize_t size;
+    PyObject* size;
     Py_ssize_t index = 0;
     Py_ssize_t layout_engine = 0;
     unsigned char* encoding;
@@ -277,7 +277,7 @@ getfont(PyObject* self_, PyObject* args, PyObject* kw)
         return NULL;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, kw, "etn|nsy#n", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kw, "etO|nsy#n", kwlist,
                                      Py_FileSystemDefaultEncoding, &filename,
                                      &size, &index, &encoding, &font_bytes,
                                      &font_bytes_size, &layout_engine)) {
@@ -313,7 +313,17 @@ getfont(PyObject* self_, PyObject* args, PyObject* kw)
     }
 
     if (!error) {
-        error = FT_Set_Pixel_Sizes(self->face, 0, size);
+        unsigned int width, height;
+        if (PyLong_Check(size)) {
+            width = height = PyLong_AsUnsignedLong(size);
+        } else {
+            PyArg_ParseTuple(size, "II", &width, &height);
+        }
+        if (PyErr_Occurred()) {
+            error = 6; // Invalid Argument in Freetype
+        } else {
+            error = FT_Set_Pixel_Sizes(self->face, width, height);
+        }
     }
 
     if (!error && encoding && strlen((char*) encoding) == 4) {
