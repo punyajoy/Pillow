@@ -251,9 +251,9 @@ deps = {
         "libs": [r"*.lib"],
     },
     "harfbuzz": {
-        "url": "https://github.com/harfbuzz/harfbuzz/archive/2.6.1.zip",
-        "filename": "harfbuzz-2.6.1.zip",
-        "dir": "harfbuzz-2.6.1",
+        "url": "https://github.com/harfbuzz/harfbuzz/archive/2.6.4.zip",
+        "filename": "harfbuzz-2.6.4.zip",
+        "dir": "harfbuzz-2.6.4",
         "build": [
             cmd_cmake("-DHB_HAVE_FREETYPE:BOOL=TRUE"),
             cmd_nmake(target="clean"),
@@ -263,9 +263,9 @@ deps = {
         "libs": [r"*.lib"],
     },
     "fribidi": {
-        "url": "https://github.com/fribidi/fribidi/archive/v1.0.7.zip",
-        "filename": "fribidi-1.0.7.zip",
-        "dir": "fribidi-1.0.7",
+        "url": "https://github.com/fribidi/fribidi/archive/v1.0.9.zip",
+        "filename": "fribidi-1.0.9.zip",
+        "dir": "fribidi-1.0.9",
         "build": [
             cmd_copy(r"{winbuild_dir}\fribidi.cmake", r"CMakeLists.txt"),
             cmd_cmake(),
