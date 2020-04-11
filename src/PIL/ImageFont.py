@@ -584,9 +584,7 @@ class FreeTypeFont:
         .. versionadded:: 7.1.0
 
         """
-        size, offset = self.font.getsize(
-            text, False, direction, features, language
-        )
+        size, offset = self.font.getsize(text, False, direction, features, language)
         size = size[0] + stroke_width * 2, size[1] + stroke_width * 2
         im = fill("RGBA", size, 0)
         self.font.render(

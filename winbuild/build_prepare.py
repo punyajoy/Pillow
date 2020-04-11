@@ -199,7 +199,7 @@ deps = {
                 "<UserIncludeDirectories></UserIncludeDirectories>": "<UserIncludeDirectories>{inc_dir}</UserIncludeDirectories>",  # noqa: E501
                 "<UserLibraryDirectories></UserLibraryDirectories>": "<UserLibraryDirectories>{lib_dir}</UserLibraryDirectories>",  # noqa: E501
                 "<UserDependencies></UserDependencies>": "<UserDependencies>zlib.lib;libpng16.lib</UserDependencies>",  # noqa: E501
-            }
+            },
         },
         "build": [
             cmd_rmdir("objs"),

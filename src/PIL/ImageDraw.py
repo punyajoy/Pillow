@@ -293,11 +293,11 @@ class ImageDraw:
                 language,
                 stroke_width,
                 stroke_fill,
-                embedded_color
+                embedded_color,
             )
 
-        if embedded_color and self.mode not in ('RGB', 'RGBA'):
-            raise ValueError('Embedded color supported only in RGB and RGBA modes')
+        if embedded_color and self.mode not in ("RGB", "RGBA"):
+            raise ValueError("Embedded color supported only in RGB and RGBA modes")
 
         if font is None:
             font = self.getfont()
