@@ -23,14 +23,17 @@ Compilers
 
 Download and install:
 
-* `Microsoft Visual Studio 2017 or newer or Build Tools for Visual Studio 2017 or newer
-  <https://visualstudio.microsoft.com/downloads/>`_
-  (MSVC C++ build tools, and any Windows SDK version required)
+* `Microsoft Visual Studio 2017 (or newer) or Build Tools for Visual Studio 2017 (or newer)
+  <https://visualstudio.microsoft.com/downloads/>`_,
+  MSVC C++ build tools and any Windows SDK version required
 
-* `CMake 3.12 or newer <https://cmake.org/download/>`_
-  (also available as Visual Studio component C++ CMake tools for Windows)
+* `CMake (3.12 or newer) <https://cmake.org/download/>`_
+  *(also available as Visual Studio component C++ CMake tools for Windows)*
 
-* `NASM <https://www.nasm.us/pub/nasm/releasebuilds/?C=M;O=D>`_
+* (Optional, pass ``--nmake`` if not available) `Ninja <https://ninja-build.org/>`_
+  *(bundled in Visual Studio CMake component)*
+
+* `Netwide Assembler (NASM) <https://www.nasm.us/pub/nasm/releasebuilds/?C=M;O=D>`_
 
 Any version of Visual Studio 2017 or newer should be supported,
 including Visual Studio 2017 Community, or Build Tools for Visual Studio 2019.
@@ -60,6 +63,7 @@ behaviour of ``build_prepare.py``:
 ``build_prepare.py`` also supports the following command line parameters:
 
 * ``-v`` will print generated scripts.
+* ``--nmake`` will use NMake instead of Ninja for CMake dependencies
 * ``--no-imagequant`` will skip GPL-licensed ``libimagequant`` optional dependency
 * ``--no-raqm`` will skip optional dependency Raqm (which itself depends on
   LGPL-licensed ``fribidi``).

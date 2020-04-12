@@ -53,24 +53,36 @@ def cmd_nmake(makefile=None, target="", params=None):
     ).format(**locals())
 
 
-def cmd_cmake(params=None, file="."):
+def cmds_cmake(target, params=None):
     if params is None:
         params = ""
     elif isinstance(params, list) or isinstance(params, tuple):
         params = " ".join(params)
     else:
         params = str(params)
-    return " ".join(
-        [
-            "{{cmake}}",
-            "-DCMAKE_VERBOSE_MAKEFILE=ON",
-            "-DCMAKE_RULE_MESSAGES:BOOL=OFF",
-            "-DCMAKE_BUILD_TYPE=Release",
-            "{params}",
-            '-G "NMake Makefiles"',
-            '"{file}"',
-        ]
-    ).format(**locals())
+
+    if isinstance(target, str):
+        target = (target,)
+
+    return [
+        " ".join(
+            [
+                "{{cmake}}",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DCMAKE_VERBOSE_MAKEFILE=ON",
+                "-DCMAKE_RULE_MESSAGES:BOOL=OFF",  # for NMake
+                "-DCMAKE_C_COMPILER=cl.exe",  # for Ninja
+                "-DCMAKE_CXX_COMPILER=cl.exe",  # for Ninja
+                "{params}",
+                '-G "{{cmake_generator}}"',
+                ".",
+            ]
+        ).format(**locals()),
+        *(
+            "{{cmake}} --build . --target {tgt}".format(**locals())
+            for tgt in ("clean", *target)
+        ),
+    ]
 
 
 def cmd_msbuild(
@@ -109,19 +121,16 @@ deps = {
         "filename": "libjpeg-turbo-2.0.3.tar.gz",
         "dir": "libjpeg-turbo-2.0.3",
         "build": [
-            cmd_cmake(
-                [
+            *cmds_cmake(
+                ("jpeg-static", "cjpeg-static", "djpeg-static"),
+                (
                     "-DENABLE_SHARED:BOOL=FALSE",
                     "-DWITH_JPEG8:BOOL=TRUE",
                     "-DWITH_CRT_DLL:BOOL=TRUE",
-                ]
+                ),
             ),
-            cmd_nmake(target="clean"),
-            cmd_nmake(target="jpeg-static"),
             cmd_copy("jpeg-static.lib", "libjpeg.lib"),
-            cmd_nmake(target="cjpeg-static"),
             cmd_copy("cjpeg-static.exe", "cjpeg.exe"),
-            cmd_nmake(target="djpeg-static"),
             cmd_copy("djpeg-static.exe", "djpeg.exe"),
         ],
         "headers": ["j*.h"],
@@ -222,9 +231,10 @@ deps = {
         "filename": "openjpeg-2.3.1.tar.gz",
         "dir": "openjpeg-2.3.1",
         "build": [
-            cmd_cmake(("-DBUILD_THIRDPARTY:BOOL=OFF", "-DBUILD_SHARED_LIBS:BOOL=OFF")),
-            cmd_nmake(target="clean"),
-            cmd_nmake(target="openjp2"),
+            *cmds_cmake(
+                "openjp2",
+                ("-DBUILD_THIRDPARTY:BOOL=OFF", "-DBUILD_SHARED_LIBS:BOOL=OFF"),
+            ),
             cmd_mkdir(r"{inc_dir}\openjpeg-2.3.1"),
             cmd_copy(r"src\lib\openjp2\*.h", r"{inc_dir}\openjpeg-2.3.1"),
         ],
@@ -237,15 +247,14 @@ deps = {
         "dir": "libimagequant-e5d454bc7f5eb63ee50c84a83a7fa5ac94f68ec4",
         "patch": {
             "CMakeLists.txt": {
-                "add_library": "add_compile_options(-openmp-)\r\nadd_library",
+                # OpenMP fails with MSVC
+                "find_package(OpenMP)": "# find_package(OpenMP)",
                 " SHARED": " STATIC",
             }
         },
         "build": [
             # lint: do not inline
-            cmd_cmake(),
-            cmd_nmake(target="clean"),
-            cmd_nmake(),
+            *cmds_cmake("imagequant"),
         ],
         "headers": [r"*.h"],
         "libs": [r"*.lib"],
@@ -255,9 +264,8 @@ deps = {
         "filename": "harfbuzz-2.6.4.zip",
         "dir": "harfbuzz-2.6.4",
         "build": [
-            cmd_cmake("-DHB_HAVE_FREETYPE:BOOL=TRUE"),
-            cmd_nmake(target="clean"),
-            cmd_nmake(target="harfbuzz"),
+            # lint: do not inline
+            *cmds_cmake("harfbuzz", "-DHB_HAVE_FREETYPE:BOOL=TRUE"),
         ],
         "headers": [r"src\*.h"],
         "libs": [r"*.lib"],
@@ -268,9 +276,7 @@ deps = {
         "dir": "fribidi-1.0.9",
         "build": [
             cmd_copy(r"{winbuild_dir}\fribidi.cmake", r"CMakeLists.txt"),
-            cmd_cmake(),
-            cmd_nmake(target="clean"),
-            cmd_nmake(target="fribidi"),
+            *cmds_cmake("fribidi"),
         ],
         "headers": [r"lib\*.h"],
         "libs": [r"*.lib"],
@@ -281,9 +287,7 @@ deps = {
         "dir": "libraqm-0.7.0",
         "build": [
             cmd_copy(r"{winbuild_dir}\raqm.cmake", r"CMakeLists.txt"),
-            cmd_cmake(),
-            cmd_nmake(target="clean"),
-            cmd_nmake(target="libraqm"),
+            *cmds_cmake("libraqm"),
         ],
         "headers": [r"src\*.h"],
         "bins": [r"libraqm.dll"],
@@ -445,7 +449,7 @@ def build_dep_all():
         if dep_name in disabled:
             continue
         lines.append(r'cmd.exe /c "{{build_dir}}\{}"'.format(build_dep(dep_name)))
-        lines.append("if errorlevel 1 echo Build failed! && exit /B 1")
+        lines.append("@if errorlevel 1 @echo Build failed! && exit /B 1")
     lines.append("@echo All Pillow dependencies built successfully!")
     write_script("build_dep_all.cmd", lines)
 
@@ -477,9 +481,12 @@ if __name__ == "__main__":
         "ARCHITECTURE", "x86" if struct.calcsize("P") == 4 else "x64"
     )
     build_dir = os.environ.get("PILLOW_BUILD", os.path.join(winbuild_dir, "build"))
+    cmake_generator = "Ninja"
     for arg in sys.argv[1:]:
         if arg == "-v":
             verbose = True
+        elif arg == "--nmake":
+            cmake_generator = "NMake Makefiles"
         elif arg == "--no-imagequant":
             disabled += ["libimagequant"]
         elif arg == "--no-raqm":
@@ -495,7 +502,9 @@ if __name__ == "__main__":
         elif arg.startswith("--dir="):
             build_dir = arg[6:]
         else:
-            raise ValueError("Unknown parameter: " + arg)
+            raise ValueError(
+                "Unknown parameter: {}, see build.rst for more information".format(arg)
+            )
 
     # dependency cache directory
     os.makedirs(depends_dir, exist_ok=True)
@@ -546,6 +555,7 @@ if __name__ == "__main__":
         # Compilers / Tools
         **msvs,
         "cmake": "cmake.exe",  # TODO find CMAKE automatically
+        "cmake_generator": cmake_generator,
         # TODO find NASM automatically
         # script header
         "header": sum([header, msvs["header"], ["@echo on"]], []),
