@@ -547,7 +547,7 @@ text_layout_fallback(PyObject* string, FontObject* self, const char* dir, PyObje
         return 0;
     }
 
-    load_flags = FT_LOAD_RENDER|FT_LOAD_NO_BITMAP;
+    load_flags = FT_LOAD_RENDER|FT_LOAD_NO_BITMAP|FT_LOAD_NO_HINTING;
     if (mask) {
         load_flags |= FT_LOAD_TARGET_MONO;
     }
@@ -564,9 +564,9 @@ text_layout_fallback(PyObject* string, FontObject* self, const char* dir, PyObje
         if (kerning && last_index && (*glyph_info)[i].index) {
             FT_Vector delta;
             if (FT_Get_Kerning(self->face, last_index, (*glyph_info)[i].index,
-                           ft_kerning_default,&delta) == 0) {
-                (*glyph_info)[i-1].x_advance += PIXEL(delta.x);
-                (*glyph_info)[i-1].y_advance += PIXEL(delta.y);
+                           FT_KERNING_UNFITTED, &delta) == 0) {
+                (*glyph_info)[i-1].x_advance += delta.x;
+                (*glyph_info)[i-1].y_advance += delta.y;
             }
         }
 
