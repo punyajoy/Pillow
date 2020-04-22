@@ -41,6 +41,7 @@ jobs:
 
     - name: Docker build
       run: |
+        echo "::add-matcher::.github/pytest.json"
         # The Pillow user in the docker container is UID 1000
         sudo chown -R 1000 $GITHUB_WORKSPACE
         docker run --name pillow_container  -v $GITHUB_WORKSPACE:/Pillow pythonpillow/${{ matrix.docker }}:${{ matrix.dockerTag }}

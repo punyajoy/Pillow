@@ -80,6 +80,7 @@ jobs:
 
     - name: Test
       run: |
+        echo "::add-matcher::.github/pytest.json"
         .ci/test.sh
 
     - name: Prepare to upload errors
