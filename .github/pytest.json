@@ -1,0 +1,14 @@
+{
+    "problemMatcher": [
+        {
+            "owner": "pytest",
+            "pattern": [
+                {
+                    "regexp": "^(Tests/[^:]+)::.+ FAILED ",
+                    "file": 1,
+                    "message": 0
+                }
+            ]
+        }
+    ]
+}

@@ -34,9 +34,12 @@ elif "GITHUB_ACTIONS" in os.environ:
     class test_image_results:
         @staticmethod
         def upload(a, b):
+            import re
+            name = os.environ.get("PYTEST_CURRENT_TEST", "")
+            name = re.sub("([^a-zA-Z0-9\\[\\]()._-]|$)+", "-", name)
             dir_errors = os.path.join(os.path.dirname(__file__), "errors")
             os.makedirs(dir_errors, exist_ok=True)
-            tmpdir = tempfile.mkdtemp(dir=dir_errors)
+            tmpdir = tempfile.mkdtemp(prefix=name, dir=dir_errors)
             a.save(os.path.join(tmpdir, "a.png"))
             b.save(os.path.join(tmpdir, "b.png"))
             return tmpdir
