@@ -4,31 +4,32 @@ from PIL import ImageWin
 from .helper import hopper, is_win32
 
 
-class TestImageWin:
-    def test_sanity(self):
-        dir(ImageWin)
+def test_sanity():
+    dir(ImageWin)
 
-    def test_hdc(self):
-        # Arrange
-        dc = 50
 
-        # Act
-        hdc = ImageWin.HDC(dc)
-        dc2 = int(hdc)
+def test_hdc():
+    # Arrange
+    dc = 50
 
-        # Assert
-        assert dc2 == 50
+    # Act
+    hdc = ImageWin.HDC(dc)
+    dc2 = int(hdc)
 
-    def test_hwnd(self):
-        # Arrange
-        wnd = 50
+    # Assert
+    assert dc2 == 50
 
-        # Act
-        hwnd = ImageWin.HWND(wnd)
-        wnd2 = int(hwnd)
 
-        # Assert
-        assert wnd2 == 50
+def test_hwnd():
+    # Arrange
+    wnd = 50
+
+    # Act
+    hwnd = ImageWin.HWND(wnd)
+    wnd2 = int(hwnd)
+
+    # Assert
+    assert wnd2 == 50
 
 
 @pytest.mark.skipif(not is_win32(), reason="Windows only")
