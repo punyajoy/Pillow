@@ -1,9 +1,7 @@
-import os
-
 import pytest
 from PIL import Image, MspImagePlugin
 
-from .helper import assert_image_equal, hopper
+from .helper import assert_image_equal, extra_files, hopper
 
 TEST_FILE = "Tests/images/hopper.msp"
 EXTRA_DIR = "Tests/images/picins"
@@ -55,29 +53,14 @@ def _assert_file_image_equal(source_path, target_path):
             assert_image_equal(im, target)
 
 
-@pytest.mark.skipif(
-    not os.path.exists(EXTRA_DIR), reason="Extra image files not installed"
-)
-def test_open_windows_v2():
-
-    files = (
-        os.path.join(EXTRA_DIR, f)
-        for f in os.listdir(EXTRA_DIR)
-        if os.path.splitext(f)[1] == ".msp"
-    )
-    for path in files:
-        _assert_file_image_equal(path, path.replace(".msp", ".png"))
+@extra_files(EXTRA_DIR, ".msp")
+def test_open_windows_v2(path):
+    _assert_file_image_equal(path, path.replace(".msp", ".png"))
 
 
-@pytest.mark.skipif(
-    not os.path.exists(YA_EXTRA_DIR), reason="Even More Extra image files not installed"
-)
-def test_msp_v2():
-    for f in os.listdir(YA_EXTRA_DIR):
-        if ".MSP" not in f:
-            continue
-        path = os.path.join(YA_EXTRA_DIR, f)
-        _assert_file_image_equal(path, path.replace(".MSP", ".png"))
+@extra_files(YA_EXTRA_DIR, ".MSP")
+def test_msp_v2(path):
+    _assert_file_image_equal(path, path.replace(".MSP", ".png"))
 
 
 def test_cannot_save_wrong_mode(tmp_path):

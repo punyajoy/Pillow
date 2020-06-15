@@ -141,53 +141,53 @@ def test_adobe_deflate_tiff():
         assert_image_equal_tofile(im, "Tests/images/tiff_adobe_deflate.png")
 
 
-def test_write_metadata(tmp_path):
+@pytest.mark.parametrize("legacy_api", (False, True), ids=("v2", "legacy"))
+def test_write_metadata(tmp_path, legacy_api):
     """ Test metadata writing through libtiff """
-    for legacy_api in [False, True]:
-        f = str(tmp_path / "temp.tiff")
-        with Image.open("Tests/images/hopper_g4.tif") as img:
-            img.save(f, tiffinfo=img.tag)
+    f = str(tmp_path / "temp.tiff")
+    with Image.open("Tests/images/hopper_g4.tif") as img:
+        img.save(f, tiffinfo=img.tag)
 
-            if legacy_api:
-                original = img.tag.named()
-            else:
-                original = img.tag_v2.named()
+        if legacy_api:
+            original = img.tag.named()
+        else:
+            original = img.tag_v2.named()
 
-        # PhotometricInterpretation is set from SAVE_INFO,
-        # not the original image.
-        ignored = [
-            "StripByteCounts",
-            "RowsPerStrip",
-            "PageNumber",
-            "PhotometricInterpretation",
-        ]
+    # PhotometricInterpretation is set from SAVE_INFO,
+    # not the original image.
+    ignored = [
+        "StripByteCounts",
+        "RowsPerStrip",
+        "PageNumber",
+        "PhotometricInterpretation",
+    ]
 
-        with Image.open(f) as loaded:
-            if legacy_api:
-                reloaded = loaded.tag.named()
-            else:
-                reloaded = loaded.tag_v2.named()
+    with Image.open(f) as loaded:
+        if legacy_api:
+            reloaded = loaded.tag.named()
+        else:
+            reloaded = loaded.tag_v2.named()
 
-        for tag, value in itertools.chain(reloaded.items(), original.items()):
-            if tag not in ignored:
-                val = original[tag]
-                if tag.endswith("Resolution"):
-                    if legacy_api:
-                        assert (
-                            c_float(val[0][0] / val[0][1]).value
-                            == c_float(value[0][0] / value[0][1]).value
-                        ), ("%s didn't roundtrip" % tag)
-                    else:
-                        assert c_float(val).value == c_float(value).value, (
-                            "%s didn't roundtrip" % tag
-                        )
+    for tag, value in itertools.chain(reloaded.items(), original.items()):
+        if tag not in ignored:
+            val = original[tag]
+            if tag.endswith("Resolution"):
+                if legacy_api:
+                    assert (
+                        c_float(val[0][0] / val[0][1]).value
+                        == c_float(value[0][0] / value[0][1]).value
+                    ), ("%s didn't roundtrip" % tag)
                 else:
-                    assert val == value, "%s didn't roundtrip" % tag
+                    assert c_float(val).value == c_float(value).value, (
+                        "%s didn't roundtrip" % tag
+                    )
+            else:
+                assert val == value, "%s didn't roundtrip" % tag
 
-        # https://github.com/python-pillow/Pillow/issues/1561
-        requested_fields = ["StripByteCounts", "RowsPerStrip", "StripOffsets"]
-        for field in requested_fields:
-            assert field in reloaded, "%s not in metadata" % field
+    # https://github.com/python-pillow/Pillow/issues/1561
+    requested_fields = ["StripByteCounts", "RowsPerStrip", "StripOffsets"]
+    for field in requested_fields:
+        assert field in reloaded, "%s not in metadata" % field
 
 
 def test_additional_metadata(tmp_path):
@@ -247,7 +247,13 @@ def test_additional_metadata(tmp_path):
     TiffImagePlugin.WRITE_LIBTIFF = False
 
 
-def test_custom_metadata(tmp_path):
+@pytest.mark.parametrize("libtiff", (False, True), ids=lambda v: "libtiff=%s" % v)
+def test_custom_metadata(monkeypatch, tmp_path, libtiff):
+    if libtiff and not Image.core.libtiff_support_custom_tags:
+        pytest.skip("Libtiff version does not support custom tags")
+
+    monkeypatch.setattr(TiffImagePlugin, "WRITE_LIBTIFF", libtiff)
+
     tc = namedtuple("test_case", "value,type,supported_by_default")
     custom = {
         37000 + k: v
@@ -282,52 +288,41 @@ def test_custom_metadata(tmp_path):
         )
     }
 
-    libtiffs = [False]
-    if Image.core.libtiff_support_custom_tags:
-        libtiffs.append(True)
+    def check_tags(tiffinfo):
+        im = hopper()
 
-    for libtiff in libtiffs:
-        TiffImagePlugin.WRITE_LIBTIFF = libtiff
+        out = str(tmp_path / "temp.tif")
+        im.save(out, tiffinfo=tiffinfo)
 
-        def check_tags(tiffinfo):
-            im = hopper()
+        with Image.open(out) as reloaded:
+            for tag, value in tiffinfo.items():
+                reloaded_value = reloaded.tag_v2[tag]
+                if isinstance(reloaded_value, TiffImagePlugin.IFDRational) and libtiff:
+                    # libtiff does not support real RATIONALS
+                    assert round(abs(float(reloaded_value) - float(value)), 7) == 0
+                    continue
 
-            out = str(tmp_path / "temp.tif")
-            im.save(out, tiffinfo=tiffinfo)
+                if libtiff and isinstance(value, bytes):
+                    value = value.decode()
 
-            with Image.open(out) as reloaded:
-                for tag, value in tiffinfo.items():
-                    reloaded_value = reloaded.tag_v2[tag]
-                    if (
-                        isinstance(reloaded_value, TiffImagePlugin.IFDRational)
-                        and libtiff
-                    ):
-                        # libtiff does not support real RATIONALS
-                        assert round(abs(float(reloaded_value) - float(value)), 7) == 0
-                        continue
+                assert reloaded_value == value
 
-                    if libtiff and isinstance(value, bytes):
-                        value = value.decode()
+    # Test with types
+    ifd = TiffImagePlugin.ImageFileDirectory_v2()
+    for tag, tagdata in custom.items():
+        ifd[tag] = tagdata.value
+        ifd.tagtype[tag] = tagdata.type
+    check_tags(ifd)
 
-                    assert reloaded_value == value
-
-        # Test with types
-        ifd = TiffImagePlugin.ImageFileDirectory_v2()
-        for tag, tagdata in custom.items():
-            ifd[tag] = tagdata.value
-            ifd.tagtype[tag] = tagdata.type
-        check_tags(ifd)
-
-        # Test without types. This only works for some types, int for example are
-        # always encoded as LONG and not SIGNED_LONG.
-        check_tags(
-            {
-                tag: tagdata.value
-                for tag, tagdata in custom.items()
-                if tagdata.supported_by_default
-            }
-        )
-    TiffImagePlugin.WRITE_LIBTIFF = False
+    # Test without types. This only works for some types, int for example are
+    # always encoded as LONG and not SIGNED_LONG.
+    check_tags(
+        {
+            tag: tagdata.value
+            for tag, tagdata in custom.items()
+            if tagdata.supported_by_default
+        }
+    )
 
 
 def test_int_dpi(tmp_path):
@@ -582,8 +577,9 @@ def test_4bit():
         assert_image_similar(im, original, 7.3)
 
 
-def test_gray_semibyte_per_pixel():
-    test_files = (
+@pytest.mark.parametrize(
+    "epsilon,group",
+    (
         (
             24.8,  # epsilon
             (  # group
@@ -602,18 +598,20 @@ def test_gray_semibyte_per_pixel():
                 "Tests/images/tiff_gray_2_4_bpp/hopper4IR.tif",
             ),
         ),
-    )
+    ),
+    ids=("hopper2*.tif", "hopper4*.tif"),
+)
+def test_gray_semibyte_per_pixel(epsilon, group):
     original = hopper("L")
-    for epsilon, group in test_files:
-        with Image.open(group[0]) as im:
-            assert im.size == (128, 128)
-            assert im.mode == "L"
-            assert_image_similar(im, original, epsilon)
-        for file in group[1:]:
-            with Image.open(file) as im2:
-                assert im2.size == (128, 128)
-                assert im2.mode == "L"
-                assert_image_equal(im, im2)
+    with Image.open(group[0]) as im:
+        assert im.size == (128, 128)
+        assert im.mode == "L"
+        assert_image_similar(im, original, epsilon)
+    for file in group[1:]:
+        with Image.open(file) as im2:
+            assert im2.size == (128, 128)
+            assert im2.mode == "L"
+            assert_image_equal(im, im2)
 
 
 def test_save_bytesio():

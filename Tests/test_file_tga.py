@@ -17,10 +17,38 @@ _ORIGINS = ("tl", "bl")
 _ORIGIN_TO_ORIENTATION = {"tl": 1, "bl": -1}
 
 
-def test_sanity(tmp_path):
+def _test_sanity_parameterize():
+    params = []
+    ids = []
     for mode in _MODES:
+        for png_path in glob(
+            os.path.join(_TGA_DIR_COMMON, "*x*_{}.png".format(mode.lower()))
+        ):
+            base_path = os.path.splitext(png_path)[0]
+            for origin, rle in product(_ORIGINS, ("rle", "raw")):
+                tga_path = "{}_{}_{}.tga".format(base_path, origin, rle)
+                params.append((mode, png_path, tga_path, origin, rle == "rle"))
+                ids.append(os.path.basename(tga_path))
+    return pytest.mark.parametrize("mode,png_path,tga_path,origin,rle", params, ids=ids)
 
-        def roundtrip(original_im):
+
+@_test_sanity_parameterize()
+def test_sanity(tmp_path, mode, png_path, tga_path, origin, rle):
+    with Image.open(png_path) as reference_im:
+        assert reference_im.mode == mode
+        with Image.open(tga_path) as original_im:
+            assert original_im.format == "TGA"
+            assert original_im.get_format_mimetype() == "image/x-tga"
+            if rle:
+                assert original_im.info["compression"] == "tga_rle"
+            assert original_im.info["orientation"] == _ORIGIN_TO_ORIENTATION[origin]
+            if mode == "P":
+                assert original_im.getpalette() == reference_im.getpalette()
+
+            assert_image_equal(original_im, reference_im)
+
+            # roundtrip
+
             out = str(tmp_path / "temp.tga")
 
             original_im.save(out, rle=rle)
@@ -34,36 +62,6 @@ def test_sanity(tmp_path):
                     assert saved_im.getpalette() == original_im.getpalette()
 
                 assert_image_equal(saved_im, original_im)
-
-        png_paths = glob(
-            os.path.join(_TGA_DIR_COMMON, "*x*_{}.png".format(mode.lower()))
-        )
-
-        for png_path in png_paths:
-            with Image.open(png_path) as reference_im:
-                assert reference_im.mode == mode
-
-                path_no_ext = os.path.splitext(png_path)[0]
-                for origin, rle in product(_ORIGINS, (True, False)):
-                    tga_path = "{}_{}_{}.tga".format(
-                        path_no_ext, origin, "rle" if rle else "raw"
-                    )
-
-                    with Image.open(tga_path) as original_im:
-                        assert original_im.format == "TGA"
-                        assert original_im.get_format_mimetype() == "image/x-tga"
-                        if rle:
-                            assert original_im.info["compression"] == "tga_rle"
-                        assert (
-                            original_im.info["orientation"]
-                            == _ORIGIN_TO_ORIENTATION[origin]
-                        )
-                        if mode == "P":
-                            assert original_im.getpalette() == reference_im.getpalette()
-
-                        assert_image_equal(original_im, reference_im)
-
-                        roundtrip(original_im)
 
 
 def test_id_field():

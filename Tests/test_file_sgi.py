@@ -67,18 +67,18 @@ def test_invalid_file():
         SgiImagePlugin.SgiImageFile(invalid_file)
 
 
-def test_write(tmp_path):
-    def roundtrip(img):
-        out = str(tmp_path / "temp.sgi")
-        img.save(out, format="sgi")
-        with Image.open(out) as reloaded:
-            assert_image_equal(img, reloaded)
+@pytest.mark.parametrize("mode", ("L", "RGB", "RGBA", "1-dimension"))
+def test_write(tmp_path, mode):
+    if mode == "1-dimension":
+        # Test 1 dimension for an L mode image
+        img = Image.new("L", (10, 1))
+    else:
+        img = hopper(mode)
 
-    for mode in ("L", "RGB", "RGBA"):
-        roundtrip(hopper(mode))
-
-    # Test 1 dimension for an L mode image
-    roundtrip(Image.new("L", (10, 1)))
+    out = str(tmp_path / "temp.sgi")
+    img.save(out, format="sgi")
+    with Image.open(out) as reloaded:
+        assert_image_equal(img, reloaded)
 
 
 def test_write16(tmp_path):

@@ -1,4 +1,5 @@
 import io
+import os
 
 import pytest
 from PIL import EpsImagePlugin, Image, features
@@ -167,25 +168,25 @@ def test_render_scale2():
 
 
 @pytest.mark.skipif(not HAS_GHOSTSCRIPT, reason="Ghostscript not available")
-def test_resize():
-    files = [FILE1, FILE2, "Tests/images/illu10_preview.eps"]
-    for fn in files:
-        with Image.open(fn) as im:
-            new_size = (100, 100)
-            im = im.resize(new_size)
-            assert im.size == new_size
+@pytest.mark.parametrize(
+    "fn", (FILE1, FILE2, "Tests/images/illu10_preview.eps"), ids=os.path.basename
+)
+def test_resize(fn):
+    with Image.open(fn) as im:
+        new_size = (100, 100)
+        im = im.resize(new_size)
+        assert im.size == new_size
 
 
 @pytest.mark.skipif(not HAS_GHOSTSCRIPT, reason="Ghostscript not available")
-def test_thumbnail():
+@pytest.mark.parametrize("fn", (FILE1, FILE2), ids=os.path.basename)
+def test_thumbnail(fn):
     # Issue #619
     # Arrange
-    files = [FILE1, FILE2]
-    for fn in files:
-        with Image.open(FILE1) as im:
-            new_size = (100, 100)
-            im.thumbnail(new_size)
-            assert max(im.size) == max(new_size)
+    with Image.open(fn) as im:
+        new_size = (100, 100)
+        im.thumbnail(new_size)
+        assert max(im.size) == max(new_size)
 
 
 def test_read_binary_preview():
@@ -230,20 +231,20 @@ def test_readline(tmp_path):
         _test_readline_file_psfile(s, ending)
 
 
-def test_open_eps():
-    # https://github.com/python-pillow/Pillow/issues/1104
-    # Arrange
-    FILES = [
+@pytest.mark.parametrize(
+    "filename",
+    (
         "Tests/images/illu10_no_preview.eps",
         "Tests/images/illu10_preview.eps",
         "Tests/images/illuCS6_no_preview.eps",
         "Tests/images/illuCS6_preview.eps",
-    ]
-
-    # Act / Assert
-    for filename in FILES:
-        with Image.open(filename) as img:
-            assert img.mode == "RGB"
+    ),
+    ids=os.path.basename,
+)
+def test_open_eps(filename):
+    # https://github.com/python-pillow/Pillow/issues/1104
+    with Image.open(filename) as img:
+        assert img.mode == "RGB"
 
 
 @pytest.mark.skipif(not HAS_GHOSTSCRIPT, reason="Ghostscript not available")

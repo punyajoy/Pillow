@@ -70,30 +70,30 @@ def get_chunks(filename):
     return chunks
 
 
-@pytest.mark.xfail(is_big_endian() and on_ci(), reason="Fails on big-endian")
-def test_sanity(tmp_path):
-
+def test_version():
     # internal version number
     assert re.search(r"\d+\.\d+\.\d+(\.\d+)?$", Image.core.zlib_version)
 
+
+@pytest.mark.xfail(is_big_endian() and on_ci(), reason="Fails on big-endian")
+@pytest.mark.parametrize("mode", ("1", "L", "P", "RGB", "I", "I;16"))
+def test_sanity(tmp_path, mode):
     test_file = str(tmp_path / "temp.png")
 
     hopper("RGB").save(test_file)
 
-    with Image.open(test_file) as im:
-        im.load()
-        assert im.mode == "RGB"
-        assert im.size == (128, 128)
-        assert im.format == "PNG"
-        assert im.get_format_mimetype() == "image/png"
-
-    for mode in ["1", "L", "P", "RGB", "I", "I;16"]:
-        im = hopper(mode)
-        im.save(test_file)
-        with Image.open(test_file) as reloaded:
-            if mode == "I;16":
-                reloaded = reloaded.convert(mode)
-            assert_image_equal(reloaded, im)
+    im = hopper(mode)
+    im.save(test_file)
+    with Image.open(test_file) as reloaded:
+        if mode == "RGB":
+            reloaded.load()
+            assert reloaded.mode == "RGB"
+            assert reloaded.size == (128, 128)
+            assert reloaded.format == "PNG"
+            assert reloaded.get_format_mimetype() == "image/png"
+        if mode == "I;16":
+            reloaded = reloaded.convert(mode)
+        assert_image_equal(reloaded, im)
 
 
 def test_invalid_file():
@@ -301,26 +301,28 @@ def test_save_p_transparent_black(tmp_path):
     assert im.getcolors() == [(100, (0, 0, 0, 0))]
 
 
-def test_save_greyscale_transparency(tmp_path):
-    for mode, num_transparent in {"1": 1994, "L": 559, "I": 559}.items():
-        in_file = "Tests/images/" + mode.lower() + "_trns.png"
-        with Image.open(in_file) as im:
-            assert im.mode == mode
-            assert im.info["transparency"] == 255
+@pytest.mark.parametrize(
+    "mode,num_transparent", (("1", 1994), ("L", 559), ("I", 559)), ids=("1", "L", "I")
+)
+def test_save_greyscale_transparency(tmp_path, mode, num_transparent):
+    in_file = "Tests/images/" + mode.lower() + "_trns.png"
+    with Image.open(in_file) as im:
+        assert im.mode == mode
+        assert im.info["transparency"] == 255
 
-            im_rgba = im.convert("RGBA")
-        assert im_rgba.getchannel("A").getcolors()[0][0] == num_transparent
+        im_rgba = im.convert("RGBA")
+    assert im_rgba.getchannel("A").getcolors()[0][0] == num_transparent
 
-        test_file = str(tmp_path / "temp.png")
-        im.save(test_file)
+    test_file = str(tmp_path / "temp.png")
+    im.save(test_file)
 
-        with Image.open(test_file) as test_im:
-            assert test_im.mode == mode
-            assert test_im.info["transparency"] == 255
-            assert_image_equal(im, test_im)
+    with Image.open(test_file) as test_im:
+        assert test_im.mode == mode
+        assert test_im.info["transparency"] == 255
+        assert_image_equal(im, test_im)
 
-        test_im_rgba = test_im.convert("RGBA")
-        assert test_im_rgba.getchannel("A").getcolors()[0][0] == num_transparent
+    test_im_rgba = test_im.convert("RGBA")
+    assert test_im_rgba.getchannel("A").getcolors()[0][0] == num_transparent
 
 
 def test_save_rgb_single_transparency(tmp_path):

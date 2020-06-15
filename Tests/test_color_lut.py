@@ -139,29 +139,19 @@ class TestColorLut3DCoreAPI:
         im = Image.new("RGB", (10, 10), 0)
         im.im.color_lut_3d("RGBA", Image.LINEAR, *self.generate_identity_table(4, 3))
 
-    def test_identities(self):
+    @pytest.mark.parametrize("size", (2, 3, 5, 7, 11, 16, 17, (2, 2, 65)))
+    def test_identities(self, size):
         g = Image.linear_gradient("L")
         im = Image.merge(
             "RGB", [g, g.transpose(Image.ROTATE_90), g.transpose(Image.ROTATE_180)]
         )
-
-        # Fast test with small cubes
-        for size in [2, 3, 5, 7, 11, 16, 17]:
-            assert_image_equal(
-                im,
-                im._new(
-                    im.im.color_lut_3d(
-                        "RGB", Image.LINEAR, *self.generate_identity_table(3, size)
-                    )
-                ),
-            )
 
         # Not so fast
         assert_image_equal(
             im,
             im._new(
                 im.im.color_lut_3d(
-                    "RGB", Image.LINEAR, *self.generate_identity_table(3, (2, 2, 65))
+                    "RGB", Image.LINEAR, *self.generate_identity_table(3, size)
                 )
             ),
         )

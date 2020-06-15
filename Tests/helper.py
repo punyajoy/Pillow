@@ -176,6 +176,18 @@ def skip_unless_feature(feature):
     return pytest.mark.skipif(not features.check(feature), reason=reason)
 
 
+def extra_files(extra_dir, *exts):
+    if not os.path.exists(extra_dir):
+        return pytest.mark.skip("Extra image files not installed: " + extra_dir)
+    else:
+        filenames = [f for f in os.listdir(extra_dir) if os.path.splitext(f)[1] in exts]
+        assert len(filenames) > 0, (
+            "No valid files in extra images directory: " + extra_dir
+        )
+        paths = [os.path.join(extra_dir, f) for f in filenames]
+        return pytest.mark.parametrize("path", paths, ids=filenames)
+
+
 @pytest.mark.skipif(sys.platform.startswith("win32"), reason="Requires Unix or macOS")
 class PillowLeakTestCase:
     # requires unix/macOS

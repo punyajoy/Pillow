@@ -69,10 +69,10 @@ def test_load_set_dpi():
                 assert_image_similar(im, expected, 2.1)
 
 
-def test_save(tmp_path):
+@pytest.mark.parametrize("ext", (".wmf", ".emf"))
+def test_save(tmp_path, ext):
     im = hopper()
 
-    for ext in [".wmf", ".emf"]:
-        tmpfile = str(tmp_path / ("temp" + ext))
-        with pytest.raises(OSError):
-            im.save(tmpfile)
+    tmpfile = str(tmp_path / ("temp" + ext))
+    with pytest.raises(OSError):
+        im.save(tmpfile)

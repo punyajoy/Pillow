@@ -567,20 +567,20 @@ def test_bad_mpo_header():
         assert im.format == "JPEG"
 
 
-def test_save_correct_modes():
+@pytest.mark.parametrize("mode", ("1", "L", "RGB", "RGBX", "CMYK", "YCbCr"))
+def test_save_correct_modes(mode):
     out = BytesIO()
-    for mode in ["1", "L", "RGB", "RGBX", "CMYK", "YCbCr"]:
-        img = Image.new(mode, (20, 20))
-        img.save(out, "JPEG")
+    img = Image.new(mode, (20, 20))
+    img.save(out, "JPEG")
 
 
-def test_save_wrong_modes():
+@pytest.mark.parametrize("mode", ("LA", "La", "RGBA", "RGBa", "P"))
+def test_save_wrong_modes(mode):
     # ref https://github.com/python-pillow/Pillow/issues/2005
     out = BytesIO()
-    for mode in ["LA", "La", "RGBA", "RGBa", "P"]:
-        img = Image.new(mode, (20, 20))
-        with pytest.raises(OSError):
-            img.save(out, "JPEG")
+    img = Image.new(mode, (20, 20))
+    with pytest.raises(OSError):
+        img.save(out, "JPEG")
 
 
 def test_save_tiff_with_dpi(tmp_path):

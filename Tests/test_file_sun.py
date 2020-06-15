@@ -3,7 +3,7 @@ import os
 import pytest
 from PIL import Image, SunImagePlugin
 
-from .helper import assert_image_equal, assert_image_similar, hopper
+from .helper import assert_image_equal, assert_image_similar, extra_files, hopper
 
 EXTRA_DIR = "Tests/images/sunraster"
 
@@ -32,20 +32,12 @@ def test_im1():
             assert_image_equal(im, target)
 
 
-@pytest.mark.skipif(
-    not os.path.exists(EXTRA_DIR), reason="Extra image files not installed"
-)
-def test_others():
-    files = (
-        os.path.join(EXTRA_DIR, f)
-        for f in os.listdir(EXTRA_DIR)
-        if os.path.splitext(f)[1] in (".sun", ".SUN", ".ras")
-    )
-    for path in files:
-        with Image.open(path) as im:
-            im.load()
-            assert isinstance(im, SunImagePlugin.SunImageFile)
-            target_path = "%s.png" % os.path.splitext(path)[0]
-            # im.save(target_file)
-            with Image.open(target_path) as target:
-                assert_image_equal(im, target)
+@extra_files(EXTRA_DIR, ".sun", ".SUN", ".ras")
+def test_others(path):
+    with Image.open(path) as im:
+        im.load()
+        assert isinstance(im, SunImagePlugin.SunImageFile)
+        target_path = "%s.png" % os.path.splitext(path)[0]
+        # im.save(target_file)
+        with Image.open(target_path) as target:
+            assert_image_equal(im, target)

@@ -14,23 +14,23 @@ def get_files(d, ext=".bmp"):
     ]
 
 
-def test_bad():
+@pytest.mark.parametrize("f", get_files("b"), ids=os.path.basename)
+def test_bad(f):
     """ These shouldn't crash/dos, but they shouldn't return anything
     either """
-    for f in get_files("b"):
+    with pytest.warns(None) as raised:
+        try:
+            with Image.open(f) as im:
+                im.load()
+        except Exception:  # as msg:
+            pass
 
-        def open(f):
-            try:
-                with Image.open(f) as im:
-                    im.load()
-            except Exception:  # as msg:
-                pass
-
-        # Assert that there is no unclosed file warning
-        pytest.warns(None, open, f)
+    # Assert that there is no unclosed file warning
+    assert not raised
 
 
-def test_questionable():
+@pytest.mark.parametrize("f", get_files("q"), ids=os.path.basename)
+def test_questionable(f):
     """ These shouldn't crash/dos, but it's not well defined that these
     are in spec """
     supported = [
@@ -44,18 +44,18 @@ def test_questionable():
         "pal8os2sp.bmp",
         "rgb32bf-xbgr.bmp",
     ]
-    for f in get_files("q"):
-        try:
-            with Image.open(f) as im:
-                im.load()
-            if os.path.basename(f) not in supported:
-                print("Please add %s to the partially supported bmp specs." % f)
-        except Exception:  # as msg:
-            if os.path.basename(f) in supported:
-                raise
+    try:
+        with Image.open(f) as im:
+            im.load()
+        if os.path.basename(f) not in supported:
+            print("Please add %s to the partially supported bmp specs." % f)
+    except Exception:  # as msg:
+        if os.path.basename(f) in supported:
+            raise
 
 
-def test_good():
+@pytest.mark.parametrize("f", get_files("g"), ids=os.path.basename)
+def test_good(f):
     """ These should all work. There's a set of target files in the
     html directory that we can compare against. """
 
@@ -79,32 +79,33 @@ def test_good():
         "rgb32bf.bmp": "rgb24.png",
     }
 
-    def get_compare(f):
-        name = os.path.split(f)[1]
-        if name in file_map:
-            return os.path.join(base, "html", file_map[name])
-        name = os.path.splitext(name)[0]
-        return os.path.join(base, "html", "%s.png" % name)
+    try:
+        with Image.open(f) as im:
+            im.load()
 
-    for f in get_files("g"):
-        try:
-            with Image.open(f) as im:
-                im.load()
-                with Image.open(get_compare(f)) as compare:
-                    compare.load()
-                    if im.mode == "P":
-                        # assert image similar doesn't really work
-                        # with paletized image, since the palette might
-                        # be differently ordered for an equivalent image.
-                        im = im.convert("RGBA")
-                        compare = im.convert("RGBA")
-                    assert_image_similar(im, compare, 5)
+            # get comparison image
+            compare = os.path.split(f)[1]
+            if compare in file_map:
+                compare = os.path.join(base, "html", file_map[compare])
+            else:
+                compare = os.path.splitext(compare)[0]
+                compare = os.path.join(base, "html", "%s.png" % compare)
 
-        except Exception as msg:
-            # there are three here that are unsupported:
-            unsupported = (
-                os.path.join(base, "g", "rgb32bf.bmp"),
-                os.path.join(base, "g", "pal8rle.bmp"),
-                os.path.join(base, "g", "pal4rle.bmp"),
-            )
-            assert f in unsupported, "Unsupported Image {}: {}".format(f, msg)
+            with Image.open(compare) as compare:
+                compare.load()
+                if im.mode == "P":
+                    # assert image similar doesn't really work
+                    # with paletized image, since the palette might
+                    # be differently ordered for an equivalent image.
+                    im = im.convert("RGBA")
+                    compare = im.convert("RGBA")
+                assert_image_similar(im, compare, 5)
+
+    except Exception as msg:
+        # there are three here that are unsupported:
+        unsupported = (
+            os.path.join(base, "g", "rgb32bf.bmp"),
+            os.path.join(base, "g", "pal8rle.bmp"),
+            os.path.join(base, "g", "pal4rle.bmp"),
+        )
+        assert f in unsupported, "Unsupported Image {}: {}".format(f, msg)

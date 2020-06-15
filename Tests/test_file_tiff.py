@@ -148,19 +148,21 @@ def test_int_resolution():
         assert im.info["dpi"] == (71.0, 71.0)
 
 
-def test_load_dpi_rounding():
-    for resolutionUnit, dpi in ((None, (72, 73)), (2, (72, 73)), (3, (183, 185))):
-        with Image.open(
-            "Tests/images/hopper_roundDown_" + str(resolutionUnit) + ".tif"
-        ) as im:
-            assert im.tag_v2.get(RESOLUTION_UNIT) == resolutionUnit
-            assert im.info["dpi"] == (dpi[0], dpi[0])
+@pytest.mark.parametrize(
+    "resolutionUnit,dpi", ((None, (72, 73)), (2, (72, 73)), (3, (183, 185)))
+)
+def test_load_dpi_rounding(resolutionUnit, dpi):
+    with Image.open(
+        "Tests/images/hopper_roundDown_" + str(resolutionUnit) + ".tif"
+    ) as im:
+        assert im.tag_v2.get(RESOLUTION_UNIT) == resolutionUnit
+        assert im.info["dpi"] == (dpi[0], dpi[0])
 
-        with Image.open(
-            "Tests/images/hopper_roundUp_" + str(resolutionUnit) + ".tif"
-        ) as im:
-            assert im.tag_v2.get(RESOLUTION_UNIT) == resolutionUnit
-            assert im.info["dpi"] == (dpi[1], dpi[1])
+    with Image.open(
+        "Tests/images/hopper_roundUp_" + str(resolutionUnit) + ".tif"
+    ) as im:
+        assert im.tag_v2.get(RESOLUTION_UNIT) == resolutionUnit
+        assert im.info["dpi"] == (dpi[1], dpi[1])
 
 
 def test_save_dpi_rounding(tmp_path):
@@ -274,14 +276,15 @@ def test_unknown_pixel_mode():
         Image.open("Tests/images/hopper_unknown_pixel_mode.tif")
 
 
-def test_n_frames():
-    for path, n_frames in [
-        ["Tests/images/multipage-lastframe.tif", 1],
-        ["Tests/images/multipage.tiff", 3],
-    ]:
-        with Image.open(path) as im:
-            assert im.n_frames == n_frames
-            assert im.is_animated == (n_frames != 1)
+@pytest.mark.parametrize(
+    "path,n_frames",
+    (("Tests/images/multipage-lastframe.tif", 1), ("Tests/images/multipage.tiff", 3)),
+    ids=lambda x: os.path.basename(x) if isinstance(x, str) else x,
+)
+def test_n_frames(path, n_frames):
+    with Image.open(path) as im:
+        assert im.n_frames == n_frames
+        assert im.is_animated == (n_frames != 1)
 
 
 def test_eoferror():
@@ -391,12 +394,12 @@ def test___delitem__():
         assert len_before == len_after + 1
 
 
-def test_load_byte():
-    for legacy_api in [False, True]:
-        ifd = TiffImagePlugin.ImageFileDirectory_v2()
-        data = b"abc"
-        ret = ifd.load_byte(data, legacy_api)
-        assert ret == b"abc"
+@pytest.mark.parametrize("legacy_api", (False, True), ids=("v2", "legacy"))
+def test_load_byte(legacy_api):
+    ifd = TiffImagePlugin.ImageFileDirectory_v2()
+    data = b"abc"
+    ret = ifd.load_byte(data, legacy_api)
+    assert ret == b"abc"
 
 
 def test_load_string():
@@ -462,8 +465,9 @@ def test_4bit():
         assert_image_similar(im, original, 7.3)
 
 
-def test_gray_semibyte_per_pixel():
-    test_files = (
+@pytest.mark.parametrize(
+    "epsilon,group",
+    (
         (
             24.8,  # epsilon
             (  # group
@@ -482,18 +486,20 @@ def test_gray_semibyte_per_pixel():
                 "Tests/images/tiff_gray_2_4_bpp/hopper4IR.tif",
             ),
         ),
-    )
+    ),
+    ids=("hopper2*.tif", "hopper4*.tif"),
+)
+def test_gray_semibyte_per_pixel(epsilon, group):
     original = hopper("L")
-    for epsilon, group in test_files:
-        with Image.open(group[0]) as im:
-            assert im.size == (128, 128)
-            assert im.mode == "L"
-            assert_image_similar(im, original, epsilon)
-            for file in group[1:]:
-                with Image.open(file) as im2:
-                    assert im2.size == (128, 128)
-                    assert im2.mode == "L"
-                    assert_image_equal(im, im2)
+    with Image.open(group[0]) as im:
+        assert im.size == (128, 128)
+        assert im.mode == "L"
+        assert_image_similar(im, original, epsilon)
+        for file in group[1:]:
+            with Image.open(file) as im2:
+                assert im2.size == (128, 128)
+                assert im2.mode == "L"
+                assert_image_equal(im, im2)
 
 
 def test_with_underscores(tmp_path):
@@ -555,18 +561,15 @@ def test_tiled_planar_raw():
         assert_image_equal_tofile(im, "Tests/images/tiff_adobe_deflate.png")
 
 
-def test_palette(tmp_path):
-    def roundtrip(mode):
-        outfile = str(tmp_path / "temp.tif")
+@pytest.mark.parametrize("mode", ("P", "PA"))
+def test_palette(tmp_path, mode):
+    outfile = str(tmp_path / "temp.tif")
 
-        im = hopper(mode)
-        im.save(outfile)
+    im = hopper(mode)
+    im.save(outfile)
 
-        with Image.open(outfile) as reloaded:
-            assert_image_equal(im.convert("RGB"), reloaded.convert("RGB"))
-
-    for mode in ["P", "PA"]:
-        roundtrip(mode)
+    with Image.open(outfile) as reloaded:
+        assert_image_equal(im.convert("RGB"), reloaded.convert("RGB"))
 
 
 def test_tiff_save_all():

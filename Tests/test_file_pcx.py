@@ -15,15 +15,16 @@ def _roundtrip(tmp_path, im):
         assert_image_equal(im2, im)
 
 
-def test_sanity(tmp_path):
-    for mode in ("1", "L", "P", "RGB"):
+@pytest.mark.parametrize("mode", ("1", "L", "P", "RGB", "RGBA"))
+def test_sanity(tmp_path, mode):
+    if mode == "RGBA":
+        # Test an unsupported mode
+        f = str(tmp_path / "temp.pcx")
+        im = hopper("RGBA")
+        with pytest.raises(ValueError):
+            im.save(f)
+    else:
         _roundtrip(tmp_path, hopper(mode))
-
-    # Test an unsupported mode
-    f = str(tmp_path / "temp.pcx")
-    im = hopper("RGBA")
-    with pytest.raises(ValueError):
-        im.save(f)
 
 
 def test_invalid_file():
@@ -33,14 +34,14 @@ def test_invalid_file():
         PcxImagePlugin.PcxImageFile(invalid_file)
 
 
-def test_odd(tmp_path):
+@pytest.mark.parametrize("mode", ("1", "L", "P", "RGB"))
+def test_odd(tmp_path, mode):
     # See issue #523, odd sized images should have a stride that's even.
     # Not that ImageMagick or GIMP write PCX that way.
     # We were not handling properly.
-    for mode in ("1", "L", "P", "RGB"):
-        # larger, odd sized images are better here to ensure that
-        # we handle interrupted scan lines properly.
-        _roundtrip(tmp_path, hopper(mode).resize((511, 511)))
+    # Larger, odd sized images are better here to ensure that
+    # we handle interrupted scan lines properly.
+    _roundtrip(tmp_path, hopper(mode).resize((511, 511)))
 
 
 def test_pil184():

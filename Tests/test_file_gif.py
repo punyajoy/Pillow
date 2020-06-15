@@ -271,16 +271,18 @@ def test_seek_rewind():
             assert_image_equal(im, expected)
 
 
-def test_n_frames():
-    for path, n_frames in [[TEST_GIF, 1], ["Tests/images/iss634.gif", 42]]:
-        # Test is_animated before n_frames
-        with Image.open(path) as im:
-            assert im.is_animated == (n_frames != 1)
+@pytest.mark.parametrize(
+    "path,n_frames", ((TEST_GIF, 1), ("Tests/images/iss634.gif", 42))
+)
+def test_n_frames(path, n_frames):
+    # Test is_animated before n_frames
+    with Image.open(path) as im:
+        assert im.is_animated == (n_frames != 1)
 
-        # Test is_animated after n_frames
-        with Image.open(path) as im:
-            assert im.n_frames == n_frames
-            assert im.is_animated == (n_frames != 1)
+    # Test is_animated after n_frames
+    with Image.open(path) as im:
+        assert im.n_frames == n_frames
+        assert im.is_animated == (n_frames != 1)
 
 
 def test_eoferror():
@@ -536,24 +538,24 @@ def test_identical_frames(tmp_path):
         assert reread.info["duration"] == 4500
 
 
-def test_identical_frames_to_single_frame(tmp_path):
-    for duration in ([1000, 1500, 2000, 4000], (1000, 1500, 2000, 4000), 8500):
-        out = str(tmp_path / "temp.gif")
-        im_list = [
-            Image.new("L", (100, 100), "#000"),
-            Image.new("L", (100, 100), "#000"),
-            Image.new("L", (100, 100), "#000"),
-        ]
+@pytest.mark.parametrize(
+    "duration", ([1000, 1500, 2000, 4000], (1000, 1500, 2000, 4000), 8500)
+)
+def test_identical_frames_to_single_frame(tmp_path, duration):
+    out = str(tmp_path / "temp.gif")
+    im_list = [
+        Image.new("L", (100, 100), "#000"),
+        Image.new("L", (100, 100), "#000"),
+        Image.new("L", (100, 100), "#000"),
+    ]
 
-        im_list[0].save(
-            out, save_all=True, append_images=im_list[1:], duration=duration
-        )
-        with Image.open(out) as reread:
-            # Assert that all frames were combined
-            assert reread.n_frames == 1
+    im_list[0].save(out, save_all=True, append_images=im_list[1:], duration=duration)
+    with Image.open(out) as reread:
+        # Assert that all frames were combined
+        assert reread.n_frames == 1
 
-            # Assert that the new duration is the total of the identical frames
-            assert reread.info["duration"] == 8500
+        # Assert that the new duration is the total of the identical frames
+        assert reread.info["duration"] == 8500
 
 
 def test_number_of_loops(tmp_path):
