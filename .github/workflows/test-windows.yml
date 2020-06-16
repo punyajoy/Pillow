@@ -54,7 +54,9 @@ jobs:
 
     - name: Set up TCL
       if: "contains(matrix.python-version, 'pypy')"
-      run: Write-Host "::set-env name=TCL_LIBRARY::$env:pythonLocation\tcl\tcl8.5"
+      run: |
+        dir $env:pythonLocation\tcl
+        Write-Host "::set-env name=TCL_LIBRARY::$env:pythonLocation\tcl"
       shell: pwsh
 
     - name: Print build system information
