@@ -4,32 +4,26 @@ from PIL import ImagePalette
 from .helper import hopper
 
 
-def test_putpalette():
-    def palette(mode):
+@pytest.mark.parametrize(
+    "mode,expected", (("L", "P"), ("LA", "PA"), ("P", "P"), ("PA", "PA")),
+)
+def test_putpalette_valid(mode, expected):
+    im = hopper(mode).copy()
+    im.putpalette(list(range(256)) * 3)
+    p = im.getpalette()
+    assert im.mode == expected
+    assert p[:10] == list(range(10))
+
+
+@pytest.mark.parametrize(
+    "mode", ("1", "I", "F", "RGB", "RGBA", "YCbCr"),
+)
+def test_putpalette_invalid(mode):
+    with pytest.raises(ValueError):
         im = hopper(mode).copy()
         im.putpalette(list(range(256)) * 3)
-        p = im.getpalette()
-        if p:
-            return im.mode, p[:10]
-        return im.mode
-
-    with pytest.raises(ValueError):
-        palette("1")
-    for mode in ["L", "LA", "P", "PA"]:
-        assert palette(mode) == (
-            "PA" if "A" in mode else "P",
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-        )
-    with pytest.raises(ValueError):
-        palette("I")
-    with pytest.raises(ValueError):
-        palette("F")
-    with pytest.raises(ValueError):
-        palette("RGB")
-    with pytest.raises(ValueError):
-        palette("RGBA")
-    with pytest.raises(ValueError):
-        palette("YCbCr")
+        im.getpalette()
+        im.mode
 
 
 def test_imagepalette():

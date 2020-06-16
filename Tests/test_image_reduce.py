@@ -188,70 +188,28 @@ def assert_compare_images(a, b, max_average_diff, max_diff=255):
         )
 
 
-def test_mode_L():
-    im = get_image("L")
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor)
-        compare_reduce_with_box(im, factor)
+@pytest.mark.parametrize(
+    "remarkable_factor",
+    remarkable_factors,
+    ids=[("%s-%s" % f if isinstance(f, tuple) else str(f)) for f in remarkable_factors],
+)
+@pytest.mark.parametrize("mode", ("L", "LA", "La", "RGB", "RGBA", "RGBa", "I", "F",))
+def test_remarkable(mode, remarkable_factor):
+    im = get_image(mode)
 
+    if mode in ("LA", "RGBA"):
+        compare_reduce_with_reference(im, remarkable_factor, 0.8, 5)
 
-def test_mode_LA():
-    im = get_image("LA")
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor, 0.8, 5)
-
-    # With opaque alpha, an error should be way smaller.
-    im.putalpha(Image.new("L", im.size, 255))
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor)
-        compare_reduce_with_box(im, factor)
-
-
-def test_mode_La():
-    im = get_image("La")
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor)
-        compare_reduce_with_box(im, factor)
-
-
-def test_mode_RGB():
-    im = get_image("RGB")
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor)
-        compare_reduce_with_box(im, factor)
-
-
-def test_mode_RGBA():
-    im = get_image("RGBA")
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor, 0.8, 5)
-
-    # With opaque alpha, an error should be way smaller.
-    im.putalpha(Image.new("L", im.size, 255))
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor)
-        compare_reduce_with_box(im, factor)
-
-
-def test_mode_RGBa():
-    im = get_image("RGBa")
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor)
-        compare_reduce_with_box(im, factor)
-
-
-def test_mode_I():
-    im = get_image("I")
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor)
-        compare_reduce_with_box(im, factor)
-
-
-def test_mode_F():
-    im = get_image("F")
-    for factor in remarkable_factors:
-        compare_reduce_with_reference(im, factor, 0, 0)
-        compare_reduce_with_box(im, factor)
+        # With opaque alpha, an error should be way smaller.
+        im.putalpha(Image.new("L", im.size, 255))
+        compare_reduce_with_reference(im, remarkable_factor)
+        compare_reduce_with_box(im, remarkable_factor)
+    elif mode == "F":
+        compare_reduce_with_reference(im, remarkable_factor, 0, 0)
+        compare_reduce_with_box(im, remarkable_factor)
+    else:
+        compare_reduce_with_reference(im, remarkable_factor)
+        compare_reduce_with_box(im, remarkable_factor)
 
 
 @pytest.mark.skipif(

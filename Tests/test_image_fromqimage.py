@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from PIL import Image, ImageQt
 
@@ -8,18 +10,19 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-@pytest.fixture
-def test_images():
-    ims = [
-        hopper(),
-        Image.open("Tests/images/transparent.png"),
-        Image.open("Tests/images/7x13.png"),
-    ]
+@pytest.fixture(
+    params=(None, "Tests/images/transparent.png", "Tests/images/7x13.png"),
+    ids=lambda f: os.path.basename(f) if f else "hopper",
+)
+def test_image(request):
+    if request.param:
+        im = Image.open(request.param)
+    else:
+        im = hopper()
     try:
-        yield ims
+        yield im
     finally:
-        for im in ims:
-            im.close()
+        im.close()
 
 
 def roundtrip(expected):
@@ -34,26 +37,21 @@ def roundtrip(expected):
         assert_image_equal(result, expected.convert("RGB"))
 
 
-def test_sanity_1(test_images):
-    for im in test_images:
-        roundtrip(im.convert("1"))
+def test_sanity_1(test_image):
+    roundtrip(test_image.convert("1"))
 
 
-def test_sanity_rgb(test_images):
-    for im in test_images:
-        roundtrip(im.convert("RGB"))
+def test_sanity_rgb(test_image):
+    roundtrip(test_image.convert("RGB"))
 
 
-def test_sanity_rgba(test_images):
-    for im in test_images:
-        roundtrip(im.convert("RGBA"))
+def test_sanity_rgba(test_image):
+    roundtrip(test_image.convert("RGBA"))
 
 
-def test_sanity_l(test_images):
-    for im in test_images:
-        roundtrip(im.convert("L"))
+def test_sanity_l(test_image):
+    roundtrip(test_image.convert("L"))
 
 
-def test_sanity_p(test_images):
-    for im in test_images:
-        roundtrip(im.convert("P"))
+def test_sanity_p(test_image):
+    roundtrip(test_image.convert("P"))

@@ -4,13 +4,13 @@ from PIL import Image, ImageFilter
 from .helper import assert_image_equal, hopper
 
 
-def test_sanity():
+@pytest.mark.parametrize("mode", ("L", "RGB", "CMYK"))
+def test_sanity(mode):
     def apply_filter(filter_to_apply):
-        for mode in ["L", "RGB", "CMYK"]:
-            im = hopper(mode)
-            out = im.filter(filter_to_apply)
-            assert out.mode == im.mode
-            assert out.size == im.size
+        im = hopper(mode)
+        out = im.filter(filter_to_apply)
+        assert out.mode == im.mode
+        assert out.size == im.size
 
     apply_filter(ImageFilter.BLUR)
     apply_filter(ImageFilter.CONTOUR)
@@ -131,7 +131,8 @@ def test_consistency_3x3():
                 )
 
 
-def test_consistency_5x5():
+@pytest.mark.parametrize("mode", ("L", "LA", "RGB", "CMYK"))
+def test_consistency_5x5(mode):
     with Image.open("Tests/images/hopper.bmp") as source:
         with Image.open("Tests/images/hopper_emboss_more.bmp") as reference:
             kernel = ImageFilter.Kernel(
@@ -148,8 +149,7 @@ def test_consistency_5x5():
             source = source.split() * 2
             reference = reference.split() * 2
 
-            for mode in ["L", "LA", "RGB", "CMYK"]:
-                assert_image_equal(
-                    Image.merge(mode, source[: len(mode)]).filter(kernel),
-                    Image.merge(mode, reference[: len(mode)]),
-                )
+            assert_image_equal(
+                Image.merge(mode, source[: len(mode)]).filter(kernel),
+                Image.merge(mode, reference[: len(mode)]),
+            )

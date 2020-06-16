@@ -1,3 +1,4 @@
+import pytest
 from PIL import Image
 
 from .helper import assert_image_equal, assert_image_similar, hopper
@@ -17,39 +18,40 @@ def rotate(im, mode, angle, center=None, translate=None):
         assert out.size != im.size
 
 
-def test_mode():
-    for mode in ("1", "P", "L", "RGB", "I", "F"):
-        im = hopper(mode)
-        rotate(im, mode, 45)
+@pytest.mark.parametrize("mode", ("1", "P", "L", "RGB", "I", "F"))
+def test_mode(mode):
+
+    im = hopper(mode)
+    rotate(im, mode, 45)
 
 
-def test_angle():
-    for angle in (0, 90, 180, 270):
-        with Image.open("Tests/images/test-card.png") as im:
-            rotate(im, im.mode, angle)
-
-
-def test_zero():
-    for angle in (0, 45, 90, 180, 270):
-        im = Image.new("RGB", (0, 0))
+@pytest.mark.parametrize("angle", (0, 90, 180, 270))
+def test_angle(angle):
+    with Image.open("Tests/images/test-card.png") as im:
         rotate(im, im.mode, angle)
 
 
-def test_resample():
+@pytest.mark.parametrize("angle", (0, 45, 90, 180, 270))
+def test_zero(angle):
+    im = Image.new("RGB", (0, 0))
+    rotate(im, im.mode, angle)
+
+
+@pytest.mark.parametrize(
+    "resample, epsilon",
+    ((Image.NEAREST, 10), (Image.BILINEAR, 5), (Image.BICUBIC, 0),),
+    ids=("nearest", "bilinear", "bicubic"),
+)
+def test_resample(resample, epsilon):
     # Target image creation, inspected by eye.
     # >>> im = Image.open('Tests/images/hopper.ppm')
     # >>> im = im.rotate(45, resample=Image.BICUBIC, expand=True)
     # >>> im.save('Tests/images/hopper_45.png')
 
     with Image.open("Tests/images/hopper_45.png") as target:
-        for (resample, epsilon) in (
-            (Image.NEAREST, 10),
-            (Image.BILINEAR, 5),
-            (Image.BICUBIC, 0),
-        ):
-            im = hopper()
-            im = im.rotate(45, resample=resample, expand=True)
-            assert_image_similar(im, target, epsilon)
+        im = hopper()
+        im = im.rotate(45, resample=resample, expand=True)
+        assert_image_similar(im, target, epsilon)
 
 
 def test_center_0():
@@ -95,12 +97,12 @@ def test_fastpath_center():
         assert_image_equal(im, Image.new("RGB", im.size, "black"))
 
 
-def test_fastpath_translate():
+@pytest.mark.parametrize("angle", (0, 90, 180, 270))
+def test_fastpath_translate(angle):
     # if we post-translate by -128
     # resulting image should be black
-    for angle in (0, 90, 180, 270):
-        im = hopper().rotate(angle, translate=(-128, -128))
-        assert_image_equal(im, Image.new("RGB", im.size, "black"))
+    im = hopper().rotate(angle, translate=(-128, -128))
+    assert_image_equal(im, Image.new("RGB", im.size, "black"))
 
 
 def test_center():
