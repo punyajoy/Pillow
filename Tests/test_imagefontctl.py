@@ -296,3 +296,34 @@ def test_combine(name, text, dir, anchor, epsilon):
 
     with Image.open(path) as expected:
         assert_image_similar(im, expected, epsilon)
+
+
+@pytest.mark.parametrize(
+    "anchor,align",
+    (
+        ("lm", "left"),  # pass with getsize
+        ("lm", "center"),  # fail at 2.12
+        ("lm", "right"),  # fail at 2.57
+        ("mm", "left"),  # fail at 2.12
+        ("mm", "center"),  # pass with getsize
+        ("mm", "right"),  # fail at 2.12
+        ("rm", "left"),  # fail at 2.57
+        ("rm", "center"),  # fail at 2.12
+        ("rm", "right"),  # pass with getsize
+    ),
+)
+def test_combine_multiline(anchor, align):
+    # test that multiline text uses getline, not getsize or getbbox
+
+    path = "Tests/images/test_combine_multiline_%s_%s.png" % (anchor, align)
+    f = ImageFont.truetype("Tests/fonts/NotoSans-Regular.ttf", 48)
+    text = "i\u0305\u035C\ntext"  # i with overline and double breve, and a word
+
+    im = Image.new("RGB", (400, 400), "white")
+    d = ImageDraw.Draw(im)
+    d.line(((0, 200), (400, 200)), "gray")
+    d.line(((200, 0), (200, 400)), "gray")
+    d.multiline_text((200, 200), text, fill="black", anchor=anchor, font=f, align=align)
+
+    with Image.open(path) as expected:
+        assert_image_similar(im, expected, 0.015)
