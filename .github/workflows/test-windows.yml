@@ -213,6 +213,7 @@ jobs:
               subversion
 
           python3 -m pip install pyroma
+          python3 -m pip install -U "setuptools>=49.1.3"
 
           pushd depends && ./install_extra_test_images.sh && popd
 

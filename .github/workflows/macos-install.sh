@@ -15,5 +15,7 @@ pip install test-image-results
 echo -e "[openblas]\nlibraries = openblas\nlibrary_dirs = /usr/local/opt/openblas/lib" >> ~/.numpy-site.cfg
 pip install numpy
 
+pip install -U "setuptools>=49.1.3"
+
 # extra test images
 pushd depends && ./install_extra_test_images.sh && popd
