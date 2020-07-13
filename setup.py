@@ -14,10 +14,15 @@ import struct
 import subprocess
 import sys
 import warnings
-from distutils import ccompiler, sysconfig
-from distutils.command.build_ext import build_ext
 
 from setuptools import Extension, setup
+
+# setuptools v49.2.0 warns:
+# "Distutils was imported before Setuptools. This usage is discouraged and may exhibit
+# undesirable behaviors or errors. Please use Setuptools' objects directly or at least
+# import Setuptools first."
+from distutils import ccompiler, sysconfig  # isort:skip
+from distutils.command.build_ext import build_ext  # isort:skip
 
 
 def get_version():
