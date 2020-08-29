@@ -8,7 +8,7 @@ pacman -S --noconfirm mingw32/mingw-w64-i686-python3-pip \
      mingw-w64-i686-libjpeg-turbo \
      mingw-w64-i686-libimagequant
 
-C:/msys64/mingw32/bin/python3 -m pip install --upgrade pip
+python3 -m pip install --upgrade pip
 
-/mingw32/bin/pip install olefile
-/mingw32/bin/pip3 install olefile
+pip install olefile
+pip3 install olefile

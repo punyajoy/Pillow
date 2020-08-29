@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cd /c/pillow && /mingw32/$EXECUTABLE setup.py install
+cd /c/pillow && python3 setup.py install
