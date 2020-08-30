@@ -146,8 +146,9 @@ deps = {
         "dir": "tiff-4.1.0",
         "build": [
             cmd_copy(r"{winbuild_dir}\tiff.opt", "nmake.opt"),
-            cmd_nmake("makefile.vc", "clean"),
-            cmd_nmake("makefile.vc", "lib"),
+            cmd_cmake("-DBUILD_SHARED_LIBS:BOOL=OFF"),
+            cmd_nmake(target="clean"),
+            cmd_nmake(target="tiff"),
         ],
         "headers": [r"libtiff\tiff*.h"],
         "libs": [r"libtiff\*.lib"],
