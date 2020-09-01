@@ -9,10 +9,12 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - "ubuntu-16.04"  # FreeType 2.6.1
           - "ubuntu-18.04"  # FreeType 2.8.1
           - "ubuntu-20.04"  # FreeType 2.10.1
         pillow:
           - "5.0.0"  # FreeType 2.8.1
+          - "5.2.0"  # FreeType 2.9.1
           - "7.1.2"  # FreeType 2.10.1
 
     runs-on: ${{ matrix.os }}
@@ -42,6 +44,12 @@ jobs:
 
     - name: Test
       run: |
+        import sys, traceback
         from PIL import ImageFont
-        ImageFont.truetype("Tests/fonts/FreeMono.ttf", 24, layout_engine=1).getmask2("test")
+        try:
+          print(ImageFont.truetype("Tests/fonts/FreeMono.ttf", 24, layout_engine=1).getmask2("test").size)
+        except Excetion as e:
+          print(traceback.format_exc())
+          sys.stdout.flush()
+          sys.exit(1)
       shell: python3 {0}
