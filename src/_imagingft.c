@@ -620,6 +620,8 @@ font_getsize(FontObject* self, PyObject* args)
     size_t i, count;
     GlyphInfo *glyph_info = NULL;
     PyObject *features = Py_None;
+    PyObject *positions; /* array of glyph positions, in pixels, for debugging */
+    int xo, yo; /* x and y offset for clipping debug info */
 
     /* calculate size and bearing for a given string */
 
@@ -630,6 +632,11 @@ font_getsize(FontObject* self, PyObject* args)
 
     count = text_layout(string, self, dir, features, lang, &glyph_info, mask);
     if (PyErr_Occurred()) {
+        return NULL;
+    }
+
+    positions = PyList_New(count);
+    if (!positions) {
         return NULL;
     }
 
@@ -699,8 +706,22 @@ font_getsize(FontObject* self, PyObject* args)
             if (face->glyph->metrics.horiBearingY > yoffset) {
                 yoffset = face->glyph->metrics.horiBearingY;
             }
+
+            PyList_SET_ITEM(positions, i,
+                    Py_BuildValue("ii",
+                    x_position
+                        - glyph_info[i].x_advance
+                        + face->glyph->metrics.horiBearingX,
+                    -face->glyph->metrics.horiBearingY));
         } else {
             y_max -= glyph_info[i].y_advance;
+
+            PyList_SET_ITEM(positions, i,
+                    Py_BuildValue("ii",
+                    bbox.xMin,
+                    y_max
+                        + glyph_info[i].y_advance
+                        + face->glyph->metrics.vertBearingY));
 
             if (i == count - 1) {
                 // trim end gap from final glyph
@@ -737,6 +758,8 @@ font_getsize(FontObject* self, PyObject* args)
             } else {
                 xoffset = 0;
             }
+            xo = -xoffset;
+            yo = yoffset;
 
             /* difference between the font ascender and the distance of
              * the baseline from the top */
@@ -748,14 +771,29 @@ font_getsize(FontObject* self, PyObject* args)
             } else {
                 yoffset = 0;
             }
+            xo = 0;
+            yo = -yoffset;
         }
     }
 
+    for (i = 0; i < count; i++) {
+        int px, py;
+        PyObject *p = PyList_GET_ITEM(positions, i);
+        PyArg_ParseTuple(p, "ii", &px, &py);
+        if (horizontal_dir) {
+            py += yo;
+        } else {
+            px -= x_min;
+        }
+        PyList_SetItem(positions, i, Py_BuildValue("ii", PIXEL(px), PIXEL(py)));
+    }
+
     return Py_BuildValue(
-        "(ii)(ii)",
+        "(ii)(ii)(iiN)",
         PIXEL(x_max - x_min), PIXEL(y_max - y_min),
-        PIXEL(xoffset), yoffset
-        );
+        PIXEL(xoffset), yoffset,
+        PIXEL(xo), PIXEL(yo), positions
+    );
 }
 
 static PyObject*
@@ -788,6 +826,9 @@ font_render(FontObject* self, PyObject* args)
     size_t i, count;
     GlyphInfo *glyph_info;
     PyObject *features = NULL;
+    PyObject *positions;
+    PyObject *clipped;
+    int xo, yo; /* x and y offset for clipping debug info */
 
     if (!PyArg_ParseTuple(args, "On|izOzi:render", &string,  &id, &mask, &dir, &features, &lang,
                                                    &stroke_width)) {
@@ -801,6 +842,15 @@ font_render(FontObject* self, PyObject* args)
     }
     if (count == 0) {
         Py_RETURN_NONE;
+    }
+
+    positions = PyList_New(count);
+    if (!positions) {
+        return NULL;
+    }
+    clipped = PyList_New(0);
+    if (!clipped) {
+        return NULL;
     }
 
     if (stroke_width) {
@@ -879,24 +929,36 @@ font_render(FontObject* self, PyObject* args)
             }
             xx = PIXEL(x) + left;
             xx += PIXEL(glyph_info[i].x_offset) + stroke_width;
+
+            if (i == 0) {
+                xo = xx - left;
+                yo = im->ysize - ascender;
+            }
         } else {
             if (glyph_slot->metrics.vertBearingX < 0) {
                 x = -glyph_slot->metrics.vertBearingX;
             }
             xx = im->xsize / 2 - bitmap.width / 2;
+            if (i == 0) {
+                xo = xx;
+                yo = ascender;
+            }
         }
 
         x0 = 0;
         x1 = bitmap.width;
         if (xx < 0) {
+            PyList_Append(clipped, Py_BuildValue("isi", i, "left", -xx));
             x0 = -xx;
         }
         if (xx + x1 > im->xsize) {
+            PyList_Append(clipped,
+                Py_BuildValue("isi", i, "right", xx + x1 - im->xsize + 1));
             x1 = im->xsize - xx;
         }
 
         source = (unsigned char*) bitmap.buffer;
-        for (bitmap_y = 0; bitmap_y < bitmap.rows; bitmap_y++) {
+        for (bitmap_y = 0; bitmap_y <= bitmap.rows; bitmap_y++) {
             if (horizontal_dir) {
                 yy = bitmap_y + im->ysize - (PIXEL(glyph_slot->metrics.horiBearingY) + ascender);
                 yy -= PIXEL(glyph_info[i].y_offset) + stroke_width * 2;
@@ -904,6 +966,26 @@ font_render(FontObject* self, PyObject* args)
                 yy = bitmap_y + PIXEL(y + glyph_slot->metrics.vertBearingY) + ascender;
                 yy += PIXEL(glyph_info[i].y_offset);
             }
+
+            if (bitmap_y == 0) {
+                PyList_SetItem(positions, i, Py_BuildValue("ii", xx, yy));
+            }
+            if (bitmap_y == bitmap.rows) {
+                break;
+            }
+
+            if (yy < 0) {
+                PyList_Append(clipped, Py_BuildValue("isi", i, "top", -yy));
+//                source += bitmap.pitch * (-yy);
+//                bitmap_y += -yy;
+//                continue;
+            }
+            if (yy >= im->ysize) {
+                PyList_Append(clipped,
+                    Py_BuildValue("isi", i, "bottom", yy - bitmap_y + bitmap.rows - im->ysize));
+                break;
+            }
+
             if (yy >= 0 && yy < im->ysize) {
                 // blend this glyph into the buffer
                 unsigned char *target = im->image8[yy] + xx;
@@ -940,7 +1022,8 @@ font_render(FontObject* self, PyObject* args)
 
     FT_Stroker_Done(stroker);
     PyMem_Del(glyph_info);
-    Py_RETURN_NONE;
+
+    return Py_BuildValue("(iiN)N", xo, yo, positions, clipped);
 }
 
 #if FREETYPE_MAJOR > 2 ||\
