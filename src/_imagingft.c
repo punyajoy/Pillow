@@ -628,6 +628,7 @@ font_getsize(FontObject* self, PyObject* args)
     const char *lang = NULL;
     PyObject *features = Py_None;
     PyObject *string;
+    PyObject *positions; /* array of glyph positions, in pixels, for debugging */
 
     /* calculate size and bearing for a given string */
 
@@ -639,6 +640,11 @@ font_getsize(FontObject* self, PyObject* args)
 
     count = text_layout(string, self, dir, features, lang, &glyph_info, mask);
     if (PyErr_Occurred()) {
+        return NULL;
+    }
+
+    positions = PyList_New(count);
+    if (!positions) {
         return NULL;
     }
 
@@ -709,6 +715,8 @@ font_getsize(FontObject* self, PyObject* args)
             y_min = bbox.yMin;
         }
 
+        PyList_SET_ITEM(positions, i, Py_BuildValue("ii", bbox.xMin, bbox.yMax));
+
         FT_Done_Glyph(glyph);
     }
 
@@ -728,10 +736,19 @@ font_getsize(FontObject* self, PyObject* args)
         }
     }
 
+    for (i = 0; i < count; i++) {
+        PyObject *p = PyList_GET_ITEM(positions, i);
+        PyArg_ParseTuple(p, "ii", &px, &py);
+        px -= x_min;
+        py -= y_max;
+        PyList_SetItem(positions, i, Py_BuildValue("ii", px, -py));
+    }
+
     return Py_BuildValue(
-        "(ii)(ii)",
+        "(ii)(ii)(iiN)",
         (x_max - x_min), (y_max - y_min),
-        (-x_anchor + x_min), -(-y_anchor + y_max)
+        (-x_anchor + x_min), -(-y_anchor + y_max),
+        x_min, y_max, positions
     );
 }
 
@@ -763,6 +780,8 @@ font_render(FontObject* self, PyObject* args)
     const char *lang = NULL;
     PyObject *features = Py_None;
     PyObject* string;
+    PyObject *positions;
+    PyObject *clipped;
 
     /* render string into given buffer (the buffer *must* have
        the right size, or this will crash) */
@@ -780,6 +799,15 @@ font_render(FontObject* self, PyObject* args)
     }
     if (count == 0) {
         Py_RETURN_NONE;
+    }
+
+    positions = PyList_New(count);
+    if (!positions) {
+        return NULL;
+    }
+    clipped = PyList_New(0);
+    if (!clipped) {
+        return NULL;
     }
 
     if (stroke_width) {
@@ -869,19 +897,36 @@ font_render(FontObject* self, PyObject* args)
             yy = -(py + glyph_slot->bitmap_top);
         }
 
+        PyList_SET_ITEM(positions, i, Py_BuildValue("ii", xx, yy));
+
         /* clip glyph bitmap width to target image bounds */
         x0 = 0;
         x1 = bitmap.width;
         if (xx < 0) {
+            PyList_Append(clipped, Py_BuildValue("isi", i, "left", -xx));
             x0 = -xx;
         }
         if (xx + x1 > im->xsize) {
+            PyList_Append(clipped,
+                Py_BuildValue("isi", i, "right", xx + x1 - im->xsize + 1));
             x1 = im->xsize - xx;
         }
 
         source = (unsigned char*) bitmap.buffer;
         for (bitmap_y = 0; bitmap_y < bitmap.rows; bitmap_y++, yy++) {
             /* clip glyph bitmap height to target image bounds */
+            if (yy < 0) {
+                PyList_Append(clipped, Py_BuildValue("isi", i, "top", -yy));
+//                source += bitmap.pitch * (-yy);
+//                bitmap_y += -yy;
+//                continue;
+            }
+            if (yy >= im->ysize) {
+                PyList_Append(clipped,
+                    Py_BuildValue("isi", i, "bottom", yy - bitmap_y + bitmap.rows - im->ysize));
+                break;
+            }
+
             if (yy >= 0 && yy < im->ysize) {
                 // blend this glyph into the buffer
                 unsigned char *target = im->image8[yy] + xx;
@@ -918,7 +963,8 @@ font_render(FontObject* self, PyObject* args)
 
     FT_Stroker_Done(stroker);
     PyMem_Del(glyph_info);
-    Py_RETURN_NONE;
+
+    return Py_BuildValue("(iiN)N", x_min, y_max, positions, clipped);
 }
 
 #if FREETYPE_MAJOR > 2 ||\

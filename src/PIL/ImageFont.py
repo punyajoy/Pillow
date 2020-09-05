@@ -260,7 +260,9 @@ class FreeTypeFont:
         :return: (width, height)
         """
         # vertical offset is added for historical reasons, see discussion in #4789
-        size, offset = self.font.getsize(text, False, direction, features, language)
+        size, offset, positions = self.font.getsize(
+            text, False, direction, features, language
+        )
         return (
             size[0] + stroke_width * 2,
             size[1] + stroke_width * 2 + offset[1],
@@ -469,14 +471,31 @@ class FreeTypeFont:
                  :py:mod:`PIL.Image.core` interface module, and the text offset, the
                  gap between the starting coordinate and the first marking
         """
-        size, offset = self.font.getsize(
+        size, offset, positions = self.font.getsize(
             text, mode == "1", direction, features, language
         )
         size = size[0] + stroke_width * 2, size[1] + stroke_width * 2
         im = fill("L", size, 0)
-        self.font.render(
+        positions2, clipped = self.font.render(
             text, im.id, mode == "1", direction, features, language, stroke_width
-        )
+        ) or (None, [])
+        if positions2 is None:
+            positions = positions2 = (0, 0, [])
+        if len(clipped) != 0:
+            import warnings
+
+            m = f"Text is clipped!\n" \
+                f"    Measured: {positions}\n" \
+                f"    Rendered: {positions2}\n" \
+                f"    Clipped glyphs: {clipped}"
+            warnings.warn(m, RuntimeWarning)
+        elif positions != positions2:
+            import warnings
+
+            m = f"Text is misaligned!\n" \
+                f"    Measured: {positions}\n" \
+                f"    Rendered: {positions2}"
+            warnings.warn(m, RuntimeWarning)
         return im, offset
 
     def font_variant(
