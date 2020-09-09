@@ -343,7 +343,7 @@ class TestImageFont:
         mask = transposed_font.getmask(text)
 
         # Assert
-        assert mask.size in ((13, 107), (13, 108))
+        assert mask.size == (13, 108)
 
     def test_unrotated_transposed_font_get_mask(self):
         # Arrange
@@ -356,7 +356,7 @@ class TestImageFont:
         mask = transposed_font.getmask(text)
 
         # Assert
-        assert mask.size in ((107, 13), (108, 13))
+        assert mask.size == (108, 13)
 
     def test_free_type_font_get_name(self):
         # Arrange
@@ -400,7 +400,7 @@ class TestImageFont:
         mask = font.getmask(text)
 
         # Assert
-        assert mask.size in ((107, 13), (108, 13))
+        assert mask.size == (108, 13)
 
     def test_load_path_not_found(self):
         # Arrange
